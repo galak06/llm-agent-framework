@@ -95,10 +95,28 @@ These files have `raise NotImplementedError` in method bodies:
 4. ~~**Nalla domain tools**~~ — DONE (LLM handles safety via system prompt, tools removed)
 5. ~~(merged with step 4)~~
 6. ~~**Implement `src/memory/vector_store.py`**~~ — DONE
-7. **Generate first Alembic migration** — `uv run alembic revision --autogenerate -m "initial tables"` (requires DATABASE_URL in .env)
+7. ~~**Generate first Alembic migration**~~ — DONE
 8. **Replace integration test placeholders** with real tests that hit Redis and the API
 9. **Push to GitHub, set up branch protection, configure secrets** per PRD Section 4.3 and 5.3
 10. **Run eval suite** against a live agent to validate the 15 Nalla test cases
+11. **Milestone: Widget UI polish to match WordPress site branding**
+    - Match host site color palette (pull brand colors from the WordPress theme — primary, accent, background, text)
+    - Add brand imagery: logo in header, avatar for assistant messages, optional hero/illustration in the launcher
+    - Replace flat/shallow look with richer visual depth (layered shadows, subtle gradients, rounded cards, proper spacing)
+    - Typography: load the site's web font instead of the generic Inter fallback
+    - Add micro-interactions (launcher bounce, message fade-in, typing indicator animation)
+    - Expose theming via `data-*` attributes on the embed script (e.g., `data-primary`, `data-logo-url`, `data-font`) so the widget is re-skinnable without a rebuild
+    - Validate against the live WordPress site visually before shipping
+12. **Milestone: Image upload for food ingredient analysis**
+    - Widget: add attach-image button (camera + gallery on mobile), with preview thumbnail and remove-before-send
+    - Client-side: validate MIME type (jpeg/png/webp/heic), enforce size cap (e.g. 5MB), downscale large images before upload
+    - API: extend `POST /ask` (or add `POST /ask/multipart`) to accept `image` part alongside the user message; store bytes/URL on the message record
+    - Storage: decide between S3-compatible object store vs. inline base64 for the LLM call — persist the URL on `ConversationMessage` either way
+    - Agent: pass image to Anthropic's vision-capable model as an `image` content block so the LLM can read the ingredient label (OCR + reasoning in one step, no separate OCR tool)
+    - Guardrails: reject non-food images, reject images with no detectable text, cap per-session upload count
+    - Safety: strip EXIF/GPS metadata before storage; virus-scan if using object storage
+    - Evals: add 5+ eval cases with real ingredient label photos (safe brand, xylitol-containing, illegible, non-food, multilingual)
+    - Update widget theming milestone deliverables to include the upload-button styling
 
 ### Phase gate rule
 Before each step: `uv run ruff check . && uv run ruff format --check . && uv run mypy src/ && uv run pytest tests/unit/` must all pass.
