@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
+from typing import Annotated
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StringConstraints
 
 # --- Enums ---
 
@@ -28,13 +29,22 @@ class ServiceStatus(StrEnum):
     DOWN = 'down'
 
 
+# --- Constrained types ---
+
+NonEmptyStr = Annotated[str, StringConstraints(min_length=1, strip_whitespace=True)]
+UserIdStr = Annotated[str, StringConstraints(min_length=1, max_length=255, strip_whitespace=True)]
+SessionIdStr = Annotated[
+    str, StringConstraints(min_length=1, max_length=255, strip_whitespace=True)
+]
+MessageStr = Annotated[str, StringConstraints(min_length=1, max_length=5000)]
+
 # --- Request / Response ---
 
 
 class AskRequest(BaseModel):
-    user_id: str
-    session_id: str
-    message: str
+    user_id: UserIdStr
+    session_id: SessionIdStr
+    message: MessageStr
 
 
 class AskResponse(BaseModel):
@@ -47,7 +57,7 @@ class RunStatusResponse(BaseModel):
     status: RunStatus
     answer: str | None = None
     tools_used: list[str] = Field(default_factory=list)
-    total_tokens: int | None = None
+    total_tokens: int | None = Field(default=None, ge=0)
     error: str | None = None
     created_at: datetime
     completed_at: datetime | None = None
@@ -56,7 +66,7 @@ class RunStatusResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: ServiceStatus
     version: str
-    uptime_seconds: float
+    uptime_seconds: float = Field(ge=0)
     checks: dict[str, ServiceStatus]
 
 
@@ -66,13 +76,13 @@ class HealthResponse(BaseModel):
 class Message(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     role: Role
-    content: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    content: NonEmptyStr
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class ToolResult(BaseModel):
-    tool_name: str
-    input: dict = Field(default_factory=dict)
+    tool_name: NonEmptyStr
+    input: dict[str, object] = Field(default_factory=dict)
     output: str = ''
     error: str | None = None
 
@@ -80,8 +90,8 @@ class ToolResult(BaseModel):
 class AgentRunResult(BaseModel):
     answer: str
     tools_used: list[str] = Field(default_factory=list)
-    total_tokens: int = 0
-    iterations: int = 0
+    total_tokens: int = Field(default=0, ge=0)
+    iterations: int = Field(default=0, ge=0)
 
 
 class GuardrailResult(BaseModel):

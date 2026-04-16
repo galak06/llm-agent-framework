@@ -20,6 +20,7 @@ dependencies = [
     "sentry-sdk[fastapi]>=2.19.0",
     "httpx>=0.28.0",
     "sse-starlette>=2.2.0",
+    "flower>=2.0.0",
 ]
 
 [dependency-groups]
@@ -47,6 +48,10 @@ quote-style = "single"
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["celery", "celery.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

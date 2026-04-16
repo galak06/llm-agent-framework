@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 
 import redis.asyncio as redis
 import structlog
@@ -16,7 +16,7 @@ class RunResultStore:
     """Redis-backed store for agent run status and results."""
 
     def __init__(self, settings: Settings) -> None:
-        self._redis = redis.from_url(settings.redis_url, decode_responses=True)
+        self._redis = redis.from_url(settings.redis_url, decode_responses=True)  # type: ignore[no-untyped-call]
         self._ttl = settings.run_result_ttl_seconds
 
     def _key(self, run_id: str) -> str:
@@ -29,12 +29,12 @@ class RunResultStore:
             data = json.loads(existing)
             data['status'] = status.value
             if status == RunStatus.DONE or status == RunStatus.FAILED:
-                data['completed_at'] = datetime.utcnow().isoformat()
+                data['completed_at'] = datetime.now(UTC).isoformat()
         else:
             data = {
                 'run_id': run_id,
                 'status': status.value,
-                'created_at': datetime.utcnow().isoformat(),
+                'created_at': datetime.now(UTC).isoformat(),
             }
         await self._redis.set(key, json.dumps(data), ex=self._ttl)
         logger.info('result_store.set_status', run_id=run_id, status=status.value)

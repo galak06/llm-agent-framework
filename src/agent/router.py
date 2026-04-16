@@ -25,7 +25,7 @@ class ConfigRouter:
     def __init__(
         self,
         orchestrators: dict[str, AgentOrchestrator],
-        rules: list[dict],
+        rules: list[dict[str, object]],
         default: str,
     ) -> None:
         self._orchestrators = orchestrators
@@ -36,7 +36,8 @@ class ConfigRouter:
         message_lower = request.message.lower()
 
         for rule in self._rules:
-            keywords: list[str] = rule.get('match_any_keywords', [])
+            raw_keywords = rule.get('match_any_keywords', [])
+            keywords: list[str] = list(raw_keywords) if isinstance(raw_keywords, list) else []
             if any(kw in message_lower for kw in keywords):
                 agent_name = rule['agent']
                 logger.info(

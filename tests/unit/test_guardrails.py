@@ -33,9 +33,10 @@ class TestGuardrailEngine:
 
     def test_empty_patterns_pass_everything(self) -> None:
         settings = Settings(
-            widget_api_key='k',
-            admin_api_key='k',
-            anthropic_api_key='k',
+            _env_file=None,
+            widget_api_key='test-key-1234',
+            admin_api_key='test-key-1234',
+            anthropic_api_key='sk-ant-test',
             database_url='postgresql+asyncpg://x',
             injection_patterns=[],
             forbidden_output_patterns=[],

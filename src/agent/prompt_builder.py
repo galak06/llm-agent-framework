@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import structlog
 
 from src.core.config import Settings
@@ -27,12 +29,12 @@ class PromptBuilder:
         self,
         session_id: str,
         user_message: str,
-    ) -> tuple[str | None, list[dict]]:
+    ) -> tuple[str | None, list[dict[str, Any]]]:
         """Build system prompt and messages list for LLM call."""
         history = await self._memory.get_history(session_id)
         relevant = await self._memory.search(user_message, top_k=self._settings.memory_top_k)
 
-        messages: list[dict] = []
+        messages: list[dict[str, Any]] = []
 
         for msg in history:
             messages.append({'role': msg.role.value, 'content': msg.content})

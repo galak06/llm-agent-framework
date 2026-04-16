@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import anthropic
 import structlog
 
@@ -18,11 +20,11 @@ class LLMClient:
 
     async def chat(
         self,
-        messages: list[dict],
+        messages: list[dict[str, Any]],
         system: str | None = None,
-        tools: list[dict] | None = None,
+        tools: list[dict[str, object]] | None = None,
     ) -> anthropic.types.Message:
-        kwargs: dict = {
+        kwargs: dict[str, Any] = {
             'model': self._model,
             'max_tokens': self._max_tokens,
             'messages': messages,
@@ -40,4 +42,4 @@ class LLMClient:
             input_tokens=response.usage.input_tokens,
             output_tokens=response.usage.output_tokens,
         )
-        return response
+        return response  # type: ignore[no-any-return]
