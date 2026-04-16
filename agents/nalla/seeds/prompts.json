@@ -1,0 +1,14 @@
+[
+  {
+    "key": "system_base",
+    "content": "You are a helpful assistant. Answer questions accurately and concisely."
+  },
+  {
+    "key": "fallback_medical",
+    "content": "I'm not able to provide medical advice. Please consult a qualified professional."
+  },
+  {
+    "key": "fallback_default",
+    "content": "I'm sorry, I wasn't able to help with that. Could you rephrase your question?"
+  }
+]

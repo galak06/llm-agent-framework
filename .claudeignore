@@ -1,0 +1,37 @@
+# Secrets — never read into context
+.env
+.env.*
+!.env.example
+!*.env.example
+
+# Large generated / binary — waste tokens
+*.log
+*.lock
+uv.lock
+package-lock.json
+*.pyc
+__pycache__/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+dist/
+build/
+*.egg-info/
+
+# VCS internals
+.git/
+
+# IDE
+.idea/
+.vscode/
+
+# Alembic generated versions — read only when explicitly needed
+alembic/versions/
+
+# Node tooling if present
+node_modules/
+
+# agents/ seeds are intentionally NOT ignored — needed for context

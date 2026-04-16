@@ -1,0 +1,9 @@
+{
+  "default_agent": "general",
+  "rules": [
+    {
+      "agent": "general",
+      "match_any_keywords": ["safe", "eat", "food", "ingredient", "toxic"]
+    }
+  ]
+}
