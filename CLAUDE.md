@@ -96,7 +96,7 @@ These files have `raise NotImplementedError` in method bodies:
 5. ~~(merged with step 4)~~
 6. ~~**Implement `src/memory/vector_store.py`**~~ — DONE
 7. ~~**Generate first Alembic migration**~~ — DONE
-8. **Replace integration test placeholders** with real tests that hit Redis and the API
+8. ~~**Replace integration test placeholders**~~ — DONE
 9. **Push to GitHub, set up branch protection, configure secrets** per PRD Section 4.3 and 5.3
 10. **Run eval suite** against a live agent to validate the 15 Nalla test cases
 11. **Milestone: Widget UI polish to match WordPress site branding**
