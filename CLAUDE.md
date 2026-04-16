@@ -83,7 +83,7 @@ These files have `raise NotImplementedError` in method bodies:
 |------|---------------|
 | ~~`agents/nalla/tools/ingredient_checker.py`~~ | Removed — LLM handles ingredient safety via system prompt |
 | ~~`agents/nalla/tools/safety_lookup.py`~~ | Removed — LLM handles safety lookup via system prompt |
-| `src/memory/vector_store.py` | All methods — needs pgvector/Supabase integration |
+| ~~`src/memory/vector_store.py`~~ | ~~All methods — needs pgvector/Supabase integration~~ DONE |
 | ~~`src/jobs/tasks.py`~~ | ~~`run_agent_task()` — wire up orchestrator inside Celery task~~ DONE |
 | ~~`src/api/v1/routes/admin.py`~~ | ~~`list_prompts()`, `update_prompt()` — wire up PromptRepository~~ DONE |
 
@@ -94,7 +94,7 @@ These files have `raise NotImplementedError` in method bodies:
 3. ~~**Implement `src/api/v1/routes/admin.py`**~~ — DONE
 4. ~~**Nalla domain tools**~~ — DONE (LLM handles safety via system prompt, tools removed)
 5. ~~(merged with step 4)~~
-6. **Implement `src/memory/vector_store.py`** — connect to pgvector/Supabase for semantic search over conversation history
+6. ~~**Implement `src/memory/vector_store.py`**~~ — DONE
 7. **Generate first Alembic migration** — `uv run alembic revision --autogenerate -m "initial tables"` (requires DATABASE_URL in .env)
 8. **Replace integration test placeholders** with real tests that hit Redis and the API
 9. **Push to GitHub, set up branch protection, configure secrets** per PRD Section 4.3 and 5.3
