@@ -1,13 +1,114 @@
 from __future__ import annotations
 
+import asyncio
+from datetime import UTC, datetime
+from typing import Any
+
+import structlog
+
 from src.jobs.worker import celery_app
+
+logger = structlog.get_logger()
+
+
+async def _execute_agent(request_dict: dict[str, str], run_id: str) -> None:
+    """Async inner function that runs the agent orchestrator."""
+    from src.agent.guardrails import GuardrailEngine
+    from src.agent.llm_client import LLMClient
+    from src.agent.orchestrator import AgentOrchestrator
+    from src.agent.prompt_builder import PromptBuilder
+    from src.core.config import get_settings
+    from src.core.exceptions import GuardrailViolationError, TokenBudgetExceededError
+    from src.domain.schemas import RunStatus, RunStatusResponse
+    from src.jobs.result_store import RunResultStore
+    from src.memory.session import RedisSessionMemory
+    from src.tools.registry import ToolRegistry
+
+    settings = get_settings()
+    store = RunResultStore(settings)
+    now = datetime.now(UTC)
+
+    try:
+        await store.set_status(run_id, RunStatus.RUNNING)
+
+        memory = RedisSessionMemory(settings)
+        llm_client = LLMClient(settings)
+        prompt_builder = PromptBuilder(settings, memory)
+        tool_registry = ToolRegistry()
+        guardrails = GuardrailEngine(settings)
+
+        orchestrator = AgentOrchestrator(
+            settings=settings,
+            llm_client=llm_client,
+            prompt_builder=prompt_builder,
+            tool_registry=tool_registry,
+            guardrails=guardrails,
+            memory_writer=memory,
+        )
+
+        result = await orchestrator.run(
+            user_id=request_dict['user_id'],
+            session_id=request_dict['session_id'],
+            message=request_dict['message'],
+        )
+
+        await store.set_result(
+            run_id,
+            RunStatusResponse(
+                run_id=run_id,
+                status=RunStatus.DONE,
+                answer=result.answer,
+                tools_used=result.tools_used,
+                total_tokens=result.total_tokens,
+                created_at=now,
+            ),
+        )
+        logger.info('task.completed', run_id=run_id, tools_used=result.tools_used)
+
+    except (GuardrailViolationError, TokenBudgetExceededError) as exc:
+        logger.warning('task.rejected', run_id=run_id, error=str(exc))
+        await store.set_result(
+            run_id,
+            RunStatusResponse(
+                run_id=run_id,
+                status=RunStatus.FAILED,
+                error=str(exc),
+                created_at=now,
+            ),
+        )
+
+    except Exception as exc:
+        logger.error('task.failed', run_id=run_id, error=str(exc))
+        await store.set_result(
+            run_id,
+            RunStatusResponse(
+                run_id=run_id,
+                status=RunStatus.FAILED,
+                error=f'Internal error: {type(exc).__name__}',
+                created_at=now,
+            ),
+        )
+        raise
 
 
 @celery_app.task(bind=True, max_retries=3)  # type: ignore[untyped-decorator]
-def run_agent_task(self: object, request_dict: dict[str, str], run_id: str) -> None:
+def run_agent_task(self: Any, request_dict: dict[str, str], run_id: str) -> None:
     """
     Execute agent loop asynchronously.
     Writes status updates to RunResultStore throughout execution.
     Retries on transient failures (network, rate limit).
     """
-    raise NotImplementedError
+    try:
+        asyncio.run(_execute_agent(request_dict, run_id))
+    except Exception as exc:
+        import anthropic
+
+        if isinstance(exc, (anthropic.RateLimitError, anthropic.APIConnectionError)):
+            logger.warning(
+                'task.retry',
+                run_id=run_id,
+                attempt=self.request.retries + 1,
+                error=str(exc),
+            )
+            raise self.retry(exc=exc, countdown=2**self.request.retries * 10) from exc
+        raise

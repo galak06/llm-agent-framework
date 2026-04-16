@@ -84,13 +84,13 @@ These files have `raise NotImplementedError` in method bodies:
 | `agents/nalla/tools/ingredient_checker.py` | `get_schema()`, `execute()` — domain tool logic |
 | `agents/nalla/tools/safety_lookup.py` | `get_schema()`, `execute()` — domain tool logic |
 | `src/memory/vector_store.py` | All methods — needs pgvector/Supabase integration |
-| `src/jobs/tasks.py` | `run_agent_task()` — wire up orchestrator inside Celery task |
+| ~~`src/jobs/tasks.py`~~ | ~~`run_agent_task()` — wire up orchestrator inside Celery task~~ DONE |
 | `src/api/v1/routes/admin.py` | `list_prompts()`, `update_prompt()` — wire up PromptRepository |
 
 ## Next Steps (in order)
 
 1. ~~**Run `uv run mypy src/` and fix all strict-mode type errors**~~ — DONE
-2. **Implement `src/jobs/tasks.py` → `run_agent_task()`** — wire up the AgentOrchestrator inside the Celery task so async jobs actually execute the agent loop
+2. ~~**Implement `src/jobs/tasks.py` → `run_agent_task()`**~~ — DONE
 3. **Implement `src/api/v1/routes/admin.py`** — connect `list_prompts()` and `update_prompt()` to PromptRepository with a DB session dependency
 4. **Implement `agents/nalla/tools/ingredient_checker.py`** — `get_schema()` should return Anthropic tool JSON schema, `execute()` should contain the domain logic for checking dog food ingredient safety
 5. **Implement `agents/nalla/tools/safety_lookup.py`** — same pattern as ingredient_checker
