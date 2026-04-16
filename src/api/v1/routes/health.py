@@ -6,7 +6,7 @@ import redis.asyncio as redis
 import structlog
 from fastapi import APIRouter
 
-from src.core.config import get_settings
+from src.core.dependencies import ContainerDep
 from src.domain.schemas import HealthResponse, ServiceStatus
 
 logger = structlog.get_logger()
@@ -16,14 +16,13 @@ _start_time = time.time()
 
 
 @router.get('/health', response_model=HealthResponse)
-async def health_check() -> HealthResponse:
+async def health_check(container: ContainerDep) -> HealthResponse:
     """Deep health check — verifies all dependencies."""
-    settings = get_settings()
     checks: dict[str, ServiceStatus] = {}
 
     # Redis check
     try:
-        r = redis.from_url(settings.redis_url, decode_responses=True)  # type: ignore[no-untyped-call]
+        r = redis.from_url(container.settings.redis_url, decode_responses=True)  # type: ignore[no-untyped-call]
         await r.ping()
         checks['redis'] = ServiceStatus.OK
         await r.aclose()
@@ -34,10 +33,7 @@ async def health_check() -> HealthResponse:
     try:
         from sqlalchemy import text
 
-        from src.db.engine import create_engine
-
-        engine, _ = create_engine(settings)
-        async with engine.connect() as conn:
+        async with container.engine.connect() as conn:
             await conn.execute(text('SELECT 1'))
         checks['database'] = ServiceStatus.OK
     except Exception:

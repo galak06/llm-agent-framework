@@ -7,9 +7,8 @@ from datetime import UTC, datetime
 import structlog
 from pgvector.sqlalchemy import Vector  # type: ignore[import-untyped]
 from sqlalchemy import Column, DateTime, String, Text, select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from src.core.config import Settings
 from src.db.models import Base
 from src.domain.schemas import Message, Role
 
@@ -39,11 +38,9 @@ def _hash_embedding(text: str, dim: int = EMBEDDING_DIM) -> list[float]:
     near-duplicate matching. For production semantic search, replace with
     a real embedding model (e.g., Voyage AI, OpenAI text-embedding-3-small).
     """
-    # Hash text in overlapping shingle windows for basic similarity
     values: list[float] = []
     for i in range(dim):
         h = hashlib.sha256(f'{i}:{text.lower().strip()}'.encode()).digest()
-        # Unpack first 4 bytes as float-like value in [-1, 1]
         raw = struct.unpack('<I', h[:4])[0]
         values.append((raw / 0xFFFFFFFF) * 2 - 1)
     return values
@@ -52,19 +49,8 @@ def _hash_embedding(text: str, dim: int = EMBEDDING_DIM) -> list[float]:
 class PgVectorMemory:
     """Long-term semantic memory backed by pgvector."""
 
-    def __init__(self, settings: Settings) -> None:
-        self._settings = settings
-        self._engine = create_async_engine(
-            settings.database_url,
-            pool_size=settings.db_pool_size,
-            max_overflow=settings.db_max_overflow,
-        )
-        self._session_factory = async_sessionmaker(
-            self._engine, class_=AsyncSession, expire_on_commit=False
-        )
-
-    async def _get_session(self) -> AsyncSession:
-        return self._session_factory()
+    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
+        self._session_factory = session_factory
 
     async def get_history(self, session_id: str, limit: int = 10) -> list[Message]:
         """Retrieve recent messages for a session, ordered by time."""
@@ -77,7 +63,7 @@ class PgVectorMemory:
             )
             result = await session.execute(stmt)
             rows = list(result.scalars().all())
-            rows.reverse()  # Return in chronological order
+            rows.reverse()
             return [
                 Message(
                     id=row.id,
