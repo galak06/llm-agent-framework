@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from src.domain.schemas import ToolResult
-from src.tools.base import BaseTool
 
 
 class MockTool:
