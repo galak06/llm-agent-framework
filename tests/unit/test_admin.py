@@ -40,7 +40,7 @@ class TestAdminRoutes:
 
         app.dependency_overrides[get_db_session] = override_session
         app.dependency_overrides[get_settings] = _make_test_settings
-        return TestClient(app, headers={'X-API-Key': ADMIN_KEY})
+        return TestClient(app, headers={'X-Admin-Key': ADMIN_KEY})
 
     @pytest.fixture
     def mock_prompt(self) -> MagicMock:

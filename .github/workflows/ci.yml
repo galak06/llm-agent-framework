@@ -38,3 +38,28 @@ jobs:
           REDIS_URL: redis://localhost:6379
           WIDGET_API_KEY: ci-test-widget-key
           ADMIN_API_KEY: ci-test-admin-key
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync --frozen
+
+      - name: Bandit — static security analysis
+        run: uv run bandit -r src/ -c pyproject.toml -f json -o bandit-report.json || true
+
+      - name: Bandit summary
+        if: always()
+        run: uv run bandit -r src/ -c pyproject.toml -ll
+
+      - name: pip-audit — dependency vulnerability scan
+        run: uv run pip-audit --require-hashes --no-deps -r <(uv pip compile pyproject.toml 2>/dev/null) || uv run pip-audit
+
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: bandit-report.json
+          retention-days: 30
