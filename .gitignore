@@ -32,4 +32,7 @@ Thumbs.db
 # Logs
 *.log
 
+# Docs / reference (not source)
+*.docx
+
 # NOTE: Do NOT ignore alembic/versions/ — migrations must be committed

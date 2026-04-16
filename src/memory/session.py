@@ -13,7 +13,7 @@ class RedisSessionMemory:
     """Short-term session memory backed by Redis with TTL."""
 
     def __init__(self, settings: Settings) -> None:
-        self._redis = redis.from_url(settings.redis_url, decode_responses=True)
+        self._redis = redis.from_url(settings.redis_url, decode_responses=True)  # type: ignore[no-untyped-call]
         self._ttl = settings.session_ttl_seconds
 
     def _key(self, session_id: str) -> str:

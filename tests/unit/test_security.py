@@ -7,6 +7,7 @@ from src.core.security import sanitize_input
 class TestSanitizeInput:
     def _settings(self, max_length: int = 500) -> Settings:
         return Settings(
+            _env_file=None,
             widget_api_key='k',
             admin_api_key='k',
             anthropic_api_key='k',

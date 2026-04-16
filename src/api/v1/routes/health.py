@@ -23,7 +23,7 @@ async def health_check() -> HealthResponse:
 
     # Redis check
     try:
-        r = redis.from_url(settings.redis_url, decode_responses=True)
+        r = redis.from_url(settings.redis_url, decode_responses=True)  # type: ignore[no-untyped-call]
         await r.ping()
         checks['redis'] = ServiceStatus.OK
         await r.aclose()

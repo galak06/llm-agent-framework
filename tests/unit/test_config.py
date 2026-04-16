@@ -22,6 +22,7 @@ class TestSettings:
     def test_missing_required_field_raises(self) -> None:
         with pytest.raises(ValueError):
             Settings(
+                _env_file=None,
                 anthropic_api_key='key',
                 database_url='db',
                 # missing widget_api_key and admin_api_key

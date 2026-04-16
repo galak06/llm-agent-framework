@@ -8,6 +8,7 @@ class TestRateLimitConfig:
         from src.core.config import Settings
 
         settings = Settings(
+            _env_file=None,
             widget_api_key='k',
             admin_api_key='k',
             anthropic_api_key='k',
@@ -20,6 +21,7 @@ class TestRateLimitConfig:
         from src.core.config import Settings
 
         settings = Settings(
+            _env_file=None,
             widget_api_key='k',
             admin_api_key='k',
             anthropic_api_key='k',

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import anthropic.types
 import structlog
 
 from src.agent.guardrails import GuardrailEngine
@@ -117,7 +118,7 @@ class AgentOrchestrator:
         raise TokenBudgetExceededError(f'Agent exceeded max iterations ({self._max_iterations})')
 
     @staticmethod
-    def _extract_text(response) -> str:  # type: ignore[no-untyped-def]
+    def _extract_text(response: anthropic.types.Message) -> str:
         """Extract text content from LLM response."""
         parts = []
         for block in response.content:

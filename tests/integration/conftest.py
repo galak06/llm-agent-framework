@@ -8,6 +8,7 @@ from src.core.config import Settings
 @pytest.fixture
 def settings() -> Settings:
     return Settings(
+        _env_file=None,
         widget_api_key='test-widget-key',
         admin_api_key='test-admin-key',
         anthropic_api_key='sk-ant-test',

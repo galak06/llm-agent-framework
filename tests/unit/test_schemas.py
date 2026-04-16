@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from src.domain.schemas import (
     AgentRunResult,
@@ -46,7 +46,7 @@ class TestRequestModels:
         resp = RunStatusResponse(
             run_id='r1',
             status=RunStatus.PENDING,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         )
         assert resp.answer is None
         assert resp.tools_used == []

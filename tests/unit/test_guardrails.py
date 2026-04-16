@@ -33,6 +33,7 @@ class TestGuardrailEngine:
 
     def test_empty_patterns_pass_everything(self) -> None:
         settings = Settings(
+            _env_file=None,
             widget_api_key='k',
             admin_api_key='k',
             anthropic_api_key='k',

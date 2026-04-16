@@ -28,7 +28,7 @@ class ToolRegistry:
     def list_tools(self) -> list[BaseTool]:
         return list(self._tools.values())
 
-    def get_schemas(self) -> list[dict]:
+    def get_schemas(self) -> list[dict[str, object]]:
         return [tool.get_schema() for tool in self._tools.values()]
 
     async def execute_tool(self, name: str, **kwargs: object) -> ToolResult:
