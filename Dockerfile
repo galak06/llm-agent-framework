@@ -17,6 +17,7 @@ COPY agents/ agents/
 COPY alembic/ alembic/
 COPY alembic.ini ./
 COPY scripts/ scripts/
+COPY widget/ widget/
 
 EXPOSE 8000
 

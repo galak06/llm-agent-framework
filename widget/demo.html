@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nalla Widget Demo — Dog Food & Fun</title>
+  <style>
+    body {
+      font-family: -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 80px auto;
+      padding: 20px;
+      color: #333;
+      background: #f9fafb;
+    }
+    h1 { font-size: 2rem; }
+    p { line-height: 1.7; color: #555; }
+    code {
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    pre {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Dog Food & Fun</h1>
+  <p>Welcome to our site! Try clicking the chat widget in the bottom-right corner to ask about dog food safety.</p>
+  <p>This is a demo page. In production, embed the widget with a single script tag:</p>
+  <pre>&lt;script
+  src="https://yourdomain.com/widget/nalla-widget.js"
+  data-api-url="https://api.yourdomain.com"
+  data-api-key="your-widget-api-key"&gt;
+&lt;/script&gt;</pre>
+
+  <!-- Widget embed -->
+  <script
+    src="nalla-widget.js"
+    data-api-url="http://localhost:8000"
+    data-api-key="dev-widget-key-12345">
+  </script>
+</body>
+</html>

@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from src.api.v1.middleware.rate_limit import RateLimitMiddleware
 from src.api.v1.middleware.request_id import RequestIDMiddleware
@@ -37,6 +40,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_methods=['GET', 'POST', 'PUT'],
         allow_headers=['Content-Type', 'X-API-Key', 'X-Admin-Key', 'X-Request-ID'],
     )
+
+    # Static widget files
+    widget_dir = Path(__file__).resolve().parent.parent.parent / 'widget'
+    if widget_dir.is_dir():
+        app.mount('/widget', StaticFiles(directory=str(widget_dir)), name='widget')
 
     # Routes
     prefix = f'/api/{settings.api_version}'
