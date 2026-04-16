@@ -1,27 +1,50 @@
 from __future__ import annotations
 
-from agents.nalla.tools.ingredient_checker import IngredientCheckerTool
-from agents.nalla.tools.safety_lookup import SafetyLookupTool
+from src.domain.schemas import ToolResult
+from src.tools.base import BaseTool
 
 
-class TestToolVersioning:
-    def test_ingredient_checker_has_version(self) -> None:
-        tool = IngredientCheckerTool()
-        assert tool.version == '1.0.0'
-        assert tool.name == 'check_ingredient'
+class MockTool:
+    """A mock tool for testing the BaseTool protocol."""
 
-    def test_safety_lookup_has_version(self) -> None:
-        tool = SafetyLookupTool()
-        assert tool.version == '1.0.0'
-        assert tool.name == 'safety_lookup'
+    name = 'mock_tool'
+    version = '1.0.0'
+    description = 'A mock tool for testing'
+
+    @property
+    def versioned_name(self) -> str:
+        return f'{self.name}@{self.version}'
+
+    def get_schema(self) -> dict[str, object]:
+        return {
+            'name': self.name,
+            'description': self.description,
+            'input_schema': {'type': 'object', 'properties': {}},
+        }
+
+    async def execute(self, **kwargs: object) -> ToolResult:
+        return ToolResult(tool_name=self.name, output='mock result')
+
+
+class TestToolProtocol:
+    def test_tool_has_protocol_methods(self) -> None:
+        tool = MockTool()
+        assert hasattr(tool, 'get_schema')
+        assert hasattr(tool, 'execute')
+        assert hasattr(tool, 'versioned_name')
 
     def test_versioned_name_format(self) -> None:
-        tool = IngredientCheckerTool()
-        expected = f'{tool.name}@{tool.version}'
-        assert expected == 'check_ingredient@1.0.0'
+        tool = MockTool()
+        assert tool.versioned_name == 'mock_tool@1.0.0'
 
-    def test_all_tools_have_description(self) -> None:
-        for tool_cls in [IngredientCheckerTool, SafetyLookupTool]:
-            tool = tool_cls()
-            assert tool.description
-            assert len(tool.description) > 0
+    def test_tool_has_required_fields(self) -> None:
+        tool = MockTool()
+        assert tool.name
+        assert tool.version
+        assert tool.description
+
+    def test_get_schema_returns_dict(self) -> None:
+        tool = MockTool()
+        schema = tool.get_schema()
+        assert 'name' in schema
+        assert 'input_schema' in schema

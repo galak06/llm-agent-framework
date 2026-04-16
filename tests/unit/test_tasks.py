@@ -33,7 +33,7 @@ class TestExecuteAgent:
         orch.run = AsyncMock(
             return_value=AgentRunResult(
                 answer='Yes, rice is safe for dogs.',
-                tools_used=['ingredient_checker@1.0.0'],
+                tools_used=[],
                 total_tokens=150,
                 iterations=1,
             )

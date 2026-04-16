@@ -81,8 +81,8 @@ These files have `raise NotImplementedError` in method bodies:
 
 | File | What's Missing |
 |------|---------------|
-| `agents/nalla/tools/ingredient_checker.py` | `get_schema()`, `execute()` — domain tool logic |
-| `agents/nalla/tools/safety_lookup.py` | `get_schema()`, `execute()` — domain tool logic |
+| ~~`agents/nalla/tools/ingredient_checker.py`~~ | Removed — LLM handles ingredient safety via system prompt |
+| ~~`agents/nalla/tools/safety_lookup.py`~~ | Removed — LLM handles safety lookup via system prompt |
 | `src/memory/vector_store.py` | All methods — needs pgvector/Supabase integration |
 | ~~`src/jobs/tasks.py`~~ | ~~`run_agent_task()` — wire up orchestrator inside Celery task~~ DONE |
 | ~~`src/api/v1/routes/admin.py`~~ | ~~`list_prompts()`, `update_prompt()` — wire up PromptRepository~~ DONE |
@@ -92,8 +92,8 @@ These files have `raise NotImplementedError` in method bodies:
 1. ~~**Run `uv run mypy src/` and fix all strict-mode type errors**~~ — DONE
 2. ~~**Implement `src/jobs/tasks.py` → `run_agent_task()`**~~ — DONE
 3. ~~**Implement `src/api/v1/routes/admin.py`**~~ — DONE
-4. **Implement `agents/nalla/tools/ingredient_checker.py`** — `get_schema()` should return Anthropic tool JSON schema, `execute()` should contain the domain logic for checking dog food ingredient safety
-5. **Implement `agents/nalla/tools/safety_lookup.py`** — same pattern as ingredient_checker
+4. ~~**Nalla domain tools**~~ — DONE (LLM handles safety via system prompt, tools removed)
+5. ~~(merged with step 4)~~
 6. **Implement `src/memory/vector_store.py`** — connect to pgvector/Supabase for semantic search over conversation history
 7. **Generate first Alembic migration** — `uv run alembic revision --autogenerate -m "initial tables"` (requires DATABASE_URL in .env)
 8. **Replace integration test placeholders** with real tests that hit Redis and the API
