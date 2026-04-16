@@ -9,6 +9,14 @@ from src.domain.schemas import AgentRunResult, RunStatus
 from src.jobs.tasks import _execute_agent
 
 
+def _mock_container(mock_store: AsyncMock, mock_orchestrator: AsyncMock) -> MagicMock:
+    """Build a mock ServiceContainer with injected store and orchestrator."""
+    container = MagicMock()
+    container.result_store = mock_store
+    container.build_orchestrator.return_value = mock_orchestrator
+    return container
+
+
 class TestExecuteAgent:
     """Tests for the async _execute_agent inner function."""
 
@@ -44,18 +52,10 @@ class TestExecuteAgent:
     async def test_successful_run_sets_done(
         self, request_dict: dict[str, str], mock_store: AsyncMock, mock_orchestrator: AsyncMock
     ) -> None:
+        container = _mock_container(mock_store, mock_orchestrator)
         with (
             patch('src.core.config.get_settings', return_value=MagicMock()),
-            patch('src.jobs.result_store.RunResultStore', return_value=mock_store),
-            patch('src.memory.session.RedisSessionMemory'),
-            patch('src.agent.llm_client.LLMClient'),
-            patch('src.agent.prompt_builder.PromptBuilder'),
-            patch('src.tools.registry.ToolRegistry'),
-            patch('src.agent.guardrails.GuardrailEngine'),
-            patch(
-                'src.agent.orchestrator.AgentOrchestrator',
-                return_value=mock_orchestrator,
-            ),
+            patch('src.core.container.ServiceContainer', return_value=container),
         ):
             await _execute_agent(request_dict, 'run-123')
 
@@ -72,16 +72,11 @@ class TestExecuteAgent:
     ) -> None:
         mock_orch = AsyncMock()
         mock_orch.run = AsyncMock(side_effect=GuardrailViolationError('Injection detected'))
+        container = _mock_container(mock_store, mock_orch)
 
         with (
             patch('src.core.config.get_settings', return_value=MagicMock()),
-            patch('src.jobs.result_store.RunResultStore', return_value=mock_store),
-            patch('src.memory.session.RedisSessionMemory'),
-            patch('src.agent.llm_client.LLMClient'),
-            patch('src.agent.prompt_builder.PromptBuilder'),
-            patch('src.tools.registry.ToolRegistry'),
-            patch('src.agent.guardrails.GuardrailEngine'),
-            patch('src.agent.orchestrator.AgentOrchestrator', return_value=mock_orch),
+            patch('src.core.container.ServiceContainer', return_value=container),
         ):
             await _execute_agent(request_dict, 'run-456')
 
@@ -95,16 +90,11 @@ class TestExecuteAgent:
     ) -> None:
         mock_orch = AsyncMock()
         mock_orch.run = AsyncMock(side_effect=TokenBudgetExceededError('Max iterations'))
+        container = _mock_container(mock_store, mock_orch)
 
         with (
             patch('src.core.config.get_settings', return_value=MagicMock()),
-            patch('src.jobs.result_store.RunResultStore', return_value=mock_store),
-            patch('src.memory.session.RedisSessionMemory'),
-            patch('src.agent.llm_client.LLMClient'),
-            patch('src.agent.prompt_builder.PromptBuilder'),
-            patch('src.tools.registry.ToolRegistry'),
-            patch('src.agent.guardrails.GuardrailEngine'),
-            patch('src.agent.orchestrator.AgentOrchestrator', return_value=mock_orch),
+            patch('src.core.container.ServiceContainer', return_value=container),
         ):
             await _execute_agent(request_dict, 'run-789')
 
@@ -118,16 +108,11 @@ class TestExecuteAgent:
     ) -> None:
         mock_orch = AsyncMock()
         mock_orch.run = AsyncMock(side_effect=RuntimeError('boom'))
+        container = _mock_container(mock_store, mock_orch)
 
         with (
             patch('src.core.config.get_settings', return_value=MagicMock()),
-            patch('src.jobs.result_store.RunResultStore', return_value=mock_store),
-            patch('src.memory.session.RedisSessionMemory'),
-            patch('src.agent.llm_client.LLMClient'),
-            patch('src.agent.prompt_builder.PromptBuilder'),
-            patch('src.tools.registry.ToolRegistry'),
-            patch('src.agent.guardrails.GuardrailEngine'),
-            patch('src.agent.orchestrator.AgentOrchestrator', return_value=mock_orch),
+            patch('src.core.container.ServiceContainer', return_value=container),
             pytest.raises(RuntimeError, match='boom'),
         ):
             await _execute_agent(request_dict, 'run-err')

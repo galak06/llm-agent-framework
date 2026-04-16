@@ -13,38 +13,19 @@ logger = structlog.get_logger()
 
 async def _execute_agent(request_dict: dict[str, str], run_id: str) -> None:
     """Async inner function that runs the agent orchestrator."""
-    from src.agent.guardrails import GuardrailEngine
-    from src.agent.llm_client import LLMClient
-    from src.agent.orchestrator import AgentOrchestrator
-    from src.agent.prompt_builder import PromptBuilder
     from src.core.config import get_settings
+    from src.core.container import ServiceContainer
     from src.core.exceptions import GuardrailViolationError, TokenBudgetExceededError
     from src.domain.schemas import RunStatus, RunStatusResponse
-    from src.jobs.result_store import RunResultStore
-    from src.memory.session import RedisSessionMemory
-    from src.tools.registry import ToolRegistry
 
     settings = get_settings()
-    store = RunResultStore(settings)
+    container = ServiceContainer(settings)
     now = datetime.now(UTC)
 
     try:
-        await store.set_status(run_id, RunStatus.RUNNING)
+        await container.result_store.set_status(run_id, RunStatus.RUNNING)
 
-        memory = RedisSessionMemory(settings)
-        llm_client = LLMClient(settings)
-        prompt_builder = PromptBuilder(settings, memory)
-        tool_registry = ToolRegistry()
-        guardrails = GuardrailEngine(settings)
-
-        orchestrator = AgentOrchestrator(
-            settings=settings,
-            llm_client=llm_client,
-            prompt_builder=prompt_builder,
-            tool_registry=tool_registry,
-            guardrails=guardrails,
-            memory_writer=memory,
-        )
+        orchestrator = container.build_orchestrator()
 
         result = await orchestrator.run(
             user_id=request_dict['user_id'],
@@ -52,7 +33,7 @@ async def _execute_agent(request_dict: dict[str, str], run_id: str) -> None:
             message=request_dict['message'],
         )
 
-        await store.set_result(
+        await container.result_store.set_result(
             run_id,
             RunStatusResponse(
                 run_id=run_id,
@@ -67,7 +48,7 @@ async def _execute_agent(request_dict: dict[str, str], run_id: str) -> None:
 
     except (GuardrailViolationError, TokenBudgetExceededError) as exc:
         logger.warning('task.rejected', run_id=run_id, error=str(exc))
-        await store.set_result(
+        await container.result_store.set_result(
             run_id,
             RunStatusResponse(
                 run_id=run_id,
@@ -79,7 +60,7 @@ async def _execute_agent(request_dict: dict[str, str], run_id: str) -> None:
 
     except Exception as exc:
         logger.error('task.failed', run_id=run_id, error=str(exc))
-        await store.set_result(
+        await container.result_store.set_result(
             run_id,
             RunStatusResponse(
                 run_id=run_id,

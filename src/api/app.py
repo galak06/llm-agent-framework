@@ -10,6 +10,7 @@ from src.api.v1.middleware.rate_limit import RateLimitMiddleware
 from src.api.v1.middleware.request_id import RequestIDMiddleware
 from src.api.v1.routes import admin, chat, health
 from src.core.config import Settings, get_settings
+from src.core.container import ServiceContainer
 from src.core.logging import configure_logging
 
 
@@ -29,6 +30,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         docs_url='/docs' if is_debug else None,
         redoc_url='/redoc' if is_debug else None,
     )
+
+    # Service container — shared across all requests
+    app.state.container = ServiceContainer(settings)
 
     # Middleware (order matters — outermost first)
     app.add_middleware(RequestIDMiddleware)
