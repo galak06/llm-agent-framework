@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 from src.core.config import get_settings
 from src.db.models import Base
+from src.memory.vector_store import MemoryEmbedding  # noqa: F401 — register model on Base
 
 config = context.config
 if config.config_file_name is not None:
