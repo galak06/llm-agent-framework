@@ -33,7 +33,7 @@ class ToolRegistry:
 
     async def execute_tool(self, name: str, **kwargs: object) -> ToolResult:
         tool = self.get(name)
-        logger.info('tool.execute', tool=tool.versioned_name, kwargs=kwargs)
+        logger.info('tool.execute', tool=tool.versioned_name, kwarg_keys=list(kwargs.keys()))
         result = await tool.execute(**kwargs)
         logger.info('tool.result', tool=tool.versioned_name, error=result.error)
         return result

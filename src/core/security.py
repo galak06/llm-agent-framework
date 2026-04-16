@@ -9,6 +9,8 @@ _UNICODE_CTRL = re.compile(r'[\x01-\x08\x0b\x0c\x0e-\x1f\x7f]')
 
 def sanitize_input(text: str, settings: Settings) -> str:
     """Strip dangerous characters and truncate to max length."""
+    # Truncate first to bound processing time on large inputs
+    text = text[: settings.allowed_input_max_length * 2]
     text = _NULL_BYTES.sub('', text)
     text = _HTML_TAGS.sub('', text)
     text = _UNICODE_CTRL.sub('', text)

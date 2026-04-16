@@ -31,6 +31,8 @@ dev = [
     "ruff>=0.8.0",
     "mypy>=1.13.0",
     "httpx>=0.28.0",
+    "bandit>=1.7.0",
+    "pip-audit>=2.7.0",
 ]
 
 [tool.ruff]
@@ -56,6 +58,10 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.bandit]
+exclude_dirs = ["tests", "alembic"]
+skips = ["B101"]  # assert is fine in non-production code
 
 [tool.hatch.build.targets.wheel]
 packages = ["src", "agents"]
