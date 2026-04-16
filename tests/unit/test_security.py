@@ -8,9 +8,9 @@ class TestSanitizeInput:
     def _settings(self, max_length: int = 500) -> Settings:
         return Settings(
             _env_file=None,
-            widget_api_key='k',
-            admin_api_key='k',
-            anthropic_api_key='k',
+            widget_api_key='test-key-1234',
+            admin_api_key='test-key-1234',
+            anthropic_api_key='sk-ant-test',
             database_url='postgresql+asyncpg://x',
             allowed_input_max_length=max_length,
         )

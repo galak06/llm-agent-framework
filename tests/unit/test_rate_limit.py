@@ -9,9 +9,9 @@ class TestRateLimitConfig:
 
         settings = Settings(
             _env_file=None,
-            widget_api_key='k',
-            admin_api_key='k',
-            anthropic_api_key='k',
+            widget_api_key='test-key-1234',
+            admin_api_key='test-key-1234',
+            anthropic_api_key='sk-ant-test',
             database_url='postgresql+asyncpg://x',
         )
         assert settings.rate_limit_requests == 10
@@ -22,9 +22,9 @@ class TestRateLimitConfig:
 
         settings = Settings(
             _env_file=None,
-            widget_api_key='k',
-            admin_api_key='k',
-            anthropic_api_key='k',
+            widget_api_key='test-key-1234',
+            admin_api_key='test-key-1234',
+            anthropic_api_key='sk-ant-test',
             database_url='postgresql+asyncpg://x',
             rate_limit_requests=100,
             rate_limit_window_seconds=300,

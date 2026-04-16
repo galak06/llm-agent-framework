@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import uuid
+from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 
 from src.api.v1.middleware.api_key import require_widget_key
 from src.core.config import get_settings
@@ -53,7 +54,12 @@ async def ask(request: AskRequest) -> AskResponse:
     response_model=RunStatusResponse,
     dependencies=[Depends(require_widget_key)],
 )
-async def get_run_status(run_id: str) -> RunStatusResponse:
+async def get_run_status(
+    run_id: Annotated[
+        str,
+        Path(pattern=r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'),
+    ],
+) -> RunStatusResponse:
     """Poll for agent run status and result."""
     settings = get_settings()
     store = RunResultStore(settings)
