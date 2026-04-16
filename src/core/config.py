@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import Field, field_validator
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     db_max_overflow: int = Field(default=10, ge=0, le=100)
 
     # Redis
+    redis_password: SecretStr = SecretStr('')
     redis_url: str = 'redis://localhost:6379'
     session_ttl_seconds: int = Field(default=3600, gt=0)
     tool_cache_ttl_seconds: int = Field(default=86400, gt=0)
@@ -65,7 +66,7 @@ class Settings(BaseSettings):
     # Observability
     sentry_dsn: str = ''
     langfuse_public_key: str = ''
-    langfuse_secret_key: str = ''
+    langfuse_secret_key: SecretStr = SecretStr('')
     langfuse_host: str = 'https://cloud.langfuse.com'
     log_level: str = 'INFO'
 

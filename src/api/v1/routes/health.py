@@ -30,14 +30,28 @@ async def health_check() -> HealthResponse:
     except Exception:
         checks['redis'] = ServiceStatus.DOWN
 
-    # Database check placeholder
-    checks['database'] = ServiceStatus.OK
+    # Database check
+    try:
+        from sqlalchemy import text
 
-    # Celery check placeholder
-    checks['celery'] = ServiceStatus.OK
+        from src.db.engine import create_engine
 
-    # Anthropic check placeholder
-    checks['anthropic'] = ServiceStatus.OK
+        engine, _ = create_engine(settings)
+        async with engine.connect() as conn:
+            await conn.execute(text('SELECT 1'))
+        checks['database'] = ServiceStatus.OK
+    except Exception:
+        checks['database'] = ServiceStatus.DOWN
+
+    # Celery check
+    try:
+        from src.jobs.worker import celery_app
+
+        inspect = celery_app.control.inspect(timeout=2.0)
+        ping_result = inspect.ping()
+        checks['celery'] = ServiceStatus.OK if ping_result else ServiceStatus.DOWN
+    except Exception:
+        checks['celery'] = ServiceStatus.DOWN
 
     overall = (
         ServiceStatus.OK
