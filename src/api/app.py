@@ -17,9 +17,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     configure_logging(settings)
 
+    # Force debug off in production
+    is_debug = settings.debug and settings.app_env != 'production'
+
     app = FastAPI(
         title=settings.app_name,
-        debug=settings.debug,
+        debug=is_debug,
+        docs_url='/docs' if is_debug else None,
+        redoc_url='/redoc' if is_debug else None,
     )
 
     # Middleware (order matters — outermost first)
@@ -29,8 +34,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         CORSMiddleware,
         allow_origins=settings.cors_origins,
         allow_credentials=True,
-        allow_methods=['*'],
-        allow_headers=['*'],
+        allow_methods=['GET', 'POST', 'PUT'],
+        allow_headers=['Content-Type', 'X-API-Key', 'X-Admin-Key', 'X-Request-ID'],
     )
 
     # Routes

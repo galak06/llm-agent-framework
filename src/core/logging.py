@@ -22,6 +22,6 @@ def get_langfuse(settings: Settings) -> Langfuse | None:
         return None
     return Langfuse(
         public_key=settings.langfuse_public_key,
-        secret_key=settings.langfuse_secret_key,
+        secret_key=settings.langfuse_secret_key.get_secret_value(),
         host=settings.langfuse_host,
     )
