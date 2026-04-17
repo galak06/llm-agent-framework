@@ -21,6 +21,7 @@ dependencies = [
     "httpx>=0.28.0",
     "sse-starlette>=2.2.0",
     "flower>=2.0.0",
+    "google-genai>=1.73.1",
 ]
 
 [dependency-groups]

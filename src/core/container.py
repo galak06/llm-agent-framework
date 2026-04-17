@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.agent.guardrails import GuardrailEngine
-from src.agent.llm_client import LLMClient
+from src.agent.llm_client import create_llm_client
 from src.agent.orchestrator import AgentOrchestrator
 from src.agent.prompt_builder import PromptBuilder
 from src.core.config import Settings
@@ -13,6 +16,18 @@ from src.db.engine import create_engine
 from src.jobs.result_store import RunResultStore
 from src.memory.session import RedisSessionMemory
 from src.tools.registry import ToolRegistry
+
+
+def _load_system_prompt(agent_name: str, prompt_key: str) -> str | None:
+    """Load system prompt from agent seeds file."""
+    seeds_path = Path('agents') / agent_name / 'seeds' / 'prompts.json'
+    if not seeds_path.exists():
+        return None
+    prompts = json.loads(seeds_path.read_text())
+    for prompt in prompts:
+        if prompt.get('key') == prompt_key:
+            return str(prompt['content'])
+    return None
 
 
 class ServiceContainer:
@@ -28,11 +43,18 @@ class ServiceContainer:
         self.session_memory = RedisSessionMemory(settings)
 
         # Agent components
-        self.llm_client = LLMClient(settings)
+        self.llm_client = create_llm_client(settings)
         self.tool_registry = ToolRegistry()
         self.guardrails = GuardrailEngine(settings)
         self.prompt_builder = PromptBuilder(settings, self.session_memory)
         self.result_store = RunResultStore(settings)
+
+        # Load system prompt from seeds
+        system_prompt = _load_system_prompt(
+            settings.agent_name, settings.persona_system_prompt_key
+        )
+        if system_prompt:
+            self.prompt_builder.set_system_prompt(system_prompt)
 
     def build_orchestrator(self) -> AgentOrchestrator:
         """Build a new orchestrator instance (stateless, safe to call per-request)."""
