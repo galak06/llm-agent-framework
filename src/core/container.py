@@ -26,7 +26,7 @@ def _load_system_prompt(agent_name: str, prompt_key: str) -> str | None:
     prompts = json.loads(seeds_path.read_text())
     for prompt in prompts:
         if prompt.get('key') == prompt_key:
-            return prompt['content']
+            return str(prompt['content'])
     return None
 
 

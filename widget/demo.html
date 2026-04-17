@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nalla Widget Demo — Dog Food & Fun</title>
+  <title>Chat Widget Demo</title>
   <style>
     body {
       font-family: -apple-system, sans-serif;
@@ -14,13 +14,8 @@
       background: #f9fafb;
     }
     h1 { font-size: 2rem; }
+    h2 { font-size: 1.3rem; margin-top: 2rem; color: #555; }
     p { line-height: 1.7; color: #555; }
-    code {
-      background: #f1f5f9;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 13px;
-    }
     pre {
       background: #1e293b;
       color: #e2e8f0;
@@ -28,24 +23,53 @@
       border-radius: 8px;
       overflow-x: auto;
       font-size: 13px;
+      line-height: 1.6;
     }
   </style>
 </head>
 <body>
   <h1>Dog Food & Fun</h1>
-  <p>Welcome to our site! Try clicking the chat widget in the bottom-right corner to ask about dog food safety.</p>
-  <p>This is a demo page. In production, embed the widget with a single script tag:</p>
-  <pre>&lt;script
-  src="https://yourdomain.com/widget/nalla-widget.js"
-  data-api-url="https://api.yourdomain.com"
-  data-api-key="your-widget-api-key"&gt;
+  <p>Try the chat widget in the bottom-right corner.</p>
+
+  <h2>Nalla embed (this page)</h2>
+  <pre>&lt;script src="chat-widget.js"
+  data-api-url="http://localhost:8000"
+  data-api-key="your-key"
+  data-title="Nalla's Dad"
+  data-subtitle="Dog food safety expert"
+  data-welcome="Hey! Ask me if any food is safe for your dog."
+  data-placeholder="Ask about any food..."
+  data-icon="paw"
+  data-primary-color="#4f46e5"
+  data-quick-actions="Can my dog eat chocolate?|Is rice safe?|Can dogs eat grapes?"
+  data-footer-text="Dog Food &amp; Fun"
+  data-footer-url="https://dogfoodandfun.com"&gt;
 &lt;/script&gt;</pre>
 
-  <!-- Widget embed -->
-  <script
-    src="nalla-widget.js"
+  <h2>Generic embed (different brand)</h2>
+  <pre>&lt;script src="chat-widget.js"
+  data-api-url="https://api.example.com"
+  data-api-key="your-key"
+  data-title="Support Bot"
+  data-subtitle="Online"
+  data-welcome="Hi! How can I help you today?"
+  data-icon="bot"
+  data-primary-color="#059669"&gt;
+&lt;/script&gt;</pre>
+
+  <!-- Nalla-branded widget -->
+  <script src="chat-widget.js"
     data-api-url="http://localhost:8000"
-    data-api-key="dev-widget-key-12345">
+    data-api-key="dev-widget-key-12345"
+    data-title="Nalla's Dad"
+    data-subtitle="Dog food safety expert"
+    data-welcome="Hey! Ask me if any food is safe for your dog."
+    data-placeholder="Ask about any food..."
+    data-icon="paw"
+    data-primary-color="#4f46e5"
+    data-quick-actions="Can my dog eat chocolate?|Is rice safe?|Can dogs eat grapes?"
+    data-footer-text="Dog Food & Fun"
+    data-footer-url="https://dogfoodandfun.com">
   </script>
 </body>
 </html>
