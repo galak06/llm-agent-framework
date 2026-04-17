@@ -32,6 +32,9 @@
   };
   const closeIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
   const sendIcon = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>';
+  const clipIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>';
+  const removeIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+  let pendingImage = null;
 
   function getIcon() {
     if (CONFIG.icon.startsWith('http') || CONFIG.icon.startsWith('/'))
@@ -188,11 +191,45 @@
     }
     .cw-qa button:hover { background: ${PC}; color: #fff; }
 
+    /* Image preview */
+    .cw-img-preview {
+      padding: 8px 12px 0; background: #fff; display: none;
+    }
+    .cw-img-preview.active { display: flex; align-items: center; gap: 8px; }
+    .cw-img-preview img {
+      width: 48px; height: 48px; border-radius: 8px; object-fit: cover;
+      border: 1px solid #e5e9ef;
+    }
+    .cw-img-preview .cw-img-name {
+      flex: 1; font-size: 11px; color: #64748b;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .cw-img-preview button {
+      width: 22px; height: 22px; border-radius: 50%; border: none;
+      background: #ef4444; color: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .cw-img-preview button svg { width: 14px; height: 14px; }
+
+    /* Bubble image */
+    .cw-bub img.cw-chat-img {
+      max-width: 100%; border-radius: 8px; margin-top: 6px; display: block;
+    }
+
     /* Input */
     .cw-foot {
-      display: flex; align-items: center; gap: 8px;
+      display: flex; align-items: center; gap: 6px;
       padding: 10px 12px; background: #fff; border-top: 1px solid #e5e9ef;
     }
+    .cw-clip {
+      width: 34px; height: 34px; border-radius: 50%; border: none;
+      background: transparent; color: #94a3b8; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      transition: color 0.15s;
+    }
+    .cw-clip:hover { color: ${PC}; }
+    .cw-clip svg { width: 18px; height: 18px; }
+    .cw-clip input { display: none; }
     .cw-foot textarea {
       flex: 1; border: 1px solid #dde2ea; border-radius: 20px;
       padding: 8px 14px; font-size: 13px; font-family: inherit;
@@ -201,13 +238,13 @@
     }
     .cw-foot textarea::placeholder { color: #9ca3af; }
     .cw-foot textarea:focus { border-color: ${PC}; background: #fff; }
-    .cw-foot button {
+    .cw-snd {
       width: 34px; height: 34px; border-radius: 50%; border: none;
       background: ${PC}; color: #fff; cursor: pointer;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
-    .cw-foot button:disabled { opacity: 0.35; cursor: default; }
-    .cw-foot button svg { width: 15px; height: 15px; }
+    .cw-snd:disabled { opacity: 0.35; cursor: default; }
+    .cw-snd svg { width: 15px; height: 15px; }
 
     /* Branding */
     .cw-brand {
@@ -216,9 +253,18 @@
     .cw-brand a { color: ${PC}; text-decoration: none; font-weight: 500; }
 
     @media (max-width: 480px) {
-      .cw-win { width: calc(100vw - 16px); height: calc(100vh - 90px); bottom: 70px; border-radius: 10px;
-        ${CONFIG.position === 'left' ? 'left: -16px;' : 'right: -16px;'} }
+      #${WIDGET_ID} { bottom: 16px; ${CONFIG.position === 'left' ? 'left: 16px;' : 'right: 16px;'} }
+      .cw-win {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        width: 100%; height: 100%; max-width: 100%; max-height: 100%;
+        border-radius: 0; z-index: 1000000;
+      }
       .cw-launcher { width: 52px; height: 52px; }
+      .cw-launcher svg { width: 22px; height: 22px; }
+      .cw-hdr { padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top)); }
+      .cw-foot { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+      .cw-bub { font-size: 14px; }
+      .cw-qa button { font-size: 13px; padding: 7px 14px; }
     }
   `;
 
@@ -263,9 +309,18 @@
           </div>
         </div>
         ${qaHTML()}
+        <div class="cw-img-preview" id="cw-img-preview">
+          <img id="cw-img-thumb" src="" alt="">
+          <span class="cw-img-name" id="cw-img-name"></span>
+          <button id="cw-img-rm">${removeIcon}</button>
+        </div>
         <div class="cw-foot">
+          <label class="cw-clip" title="Attach image">
+            ${clipIcon}
+            <input type="file" id="cw-file" accept="image/*">
+          </label>
           <textarea id="cw-inp" placeholder="${CONFIG.placeholder}" rows="1"></textarea>
-          <button id="cw-snd" disabled>${sendIcon}</button>
+          <button class="cw-snd" id="cw-snd" disabled>${sendIcon}</button>
         </div>
         ${brandHTML()}
       </div>
@@ -283,10 +338,12 @@
     const inp = document.getElementById('cw-inp');
     const snd = document.getElementById('cw-snd');
     const qa = document.getElementById('cw-qa');
+    const file = document.getElementById('cw-file');
+    const imgRm = document.getElementById('cw-img-rm');
 
     btn.onclick = toggle;
     inp.oninput = () => {
-      snd.disabled = !inp.value.trim() || isLoading;
+      snd.disabled = (!inp.value.trim() && !pendingImage) || isLoading;
       inp.style.height = 'auto';
       inp.style.height = Math.min(inp.scrollHeight, 68) + 'px';
     };
@@ -294,6 +351,28 @@
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); go(); }
     };
     snd.onclick = go;
+
+    file.onchange = e => {
+      const f = e.target.files?.[0];
+      if (!f || !f.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        pendingImage = { dataUrl: reader.result, name: f.name };
+        document.getElementById('cw-img-thumb').src = reader.result;
+        document.getElementById('cw-img-name').textContent = f.name;
+        document.getElementById('cw-img-preview').classList.add('active');
+        document.getElementById('cw-snd').disabled = false;
+      };
+      reader.readAsDataURL(f);
+      file.value = '';
+    };
+
+    imgRm.onclick = () => {
+      pendingImage = null;
+      document.getElementById('cw-img-preview').classList.remove('active');
+      snd.disabled = !inp.value.trim() || isLoading;
+    };
+
     if (qa) qa.onclick = e => {
       const b = e.target.closest('button');
       if (b && !isLoading) { inp.value = b.dataset.m; go(); qa.style.display = 'none'; }
@@ -307,14 +386,25 @@
     if (isOpen) document.getElementById('cw-inp').focus();
   }
 
-  function addMsg(text, who) {
+  function addMsg(text, who, imageUrl) {
     const body = document.getElementById('cw-body');
     const row = document.createElement('div');
     row.className = `cw-row cw-row-${who}`;
     if (who === 'bot') row.innerHTML = avaHTML();
     const bub = document.createElement('div');
     bub.className = `cw-bub cw-bub-${who}`;
-    bub.textContent = who === 'bot' ? stripMarkdown(text) : text;
+    if (imageUrl) {
+      const img = document.createElement('img');
+      img.src = imageUrl;
+      img.className = 'cw-chat-img';
+      img.alt = 'Uploaded image';
+      bub.appendChild(img);
+    }
+    if (text) {
+      const span = document.createElement('span');
+      span.textContent = who === 'bot' ? stripMarkdown(text) : text;
+      bub.appendChild(span);
+    }
     row.appendChild(bub);
     body.appendChild(row);
     body.scrollTop = body.scrollHeight;
@@ -338,9 +428,14 @@
 
   async function go() {
     const inp = document.getElementById('cw-inp');
-    const text = inp.value.trim(); if (!text) return;
+    const text = inp.value.trim();
+    const img = pendingImage;
+    if (!text && !img) return;
     inp.value = ''; inp.style.height = 'auto';
-    addMsg(text, 'user'); lock(true); showDots();
+    addMsg(text || '(image)', 'user', img?.dataUrl);
+    pendingImage = null;
+    document.getElementById('cw-img-preview').classList.remove('active');
+    lock(true); showDots();
     try {
       const r = await fetch(`${CONFIG.apiUrl}/api/v1/ask`, {
         method: 'POST',
