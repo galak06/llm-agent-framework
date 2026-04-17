@@ -62,32 +62,31 @@ The widget uses the [flowise-embed](https://github.com/FlowiseAI/FlowiseChatEmbe
 <script type="module">
   import Chatbot from 'https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js';
   Chatbot.init({
-    chatflowid: 'nalla',
+    chatflowid: '<your-agent-name>',
     apiHost: 'https://api.yourdomain.com',
-    theme: {
-      button: {
-        backgroundColor: '#ff5f42',
-        customIconSrc: '/widget/paw-white.svg',
+    chatflowConfig: {
+      uploads: {
+        isImageUploadAllowed: true,
+        imgUploadSizeAndTypes: [
+          { fileTypes: ['image/jpeg', 'image/png', 'image/webp'], maxSizeMB: 5 },
+        ],
       },
+    },
+    theme: {
+      button: { backgroundColor: '#2563eb' },
       chatWindow: {
-        title: "Nalla's Dad",
-        titleAvatarSrc: '/widget/paw-coral.svg',
-        welcomeMessage: 'Hey! Ask me if any food is safe for your dog.',
-        backgroundColor: '#FBFCFF',
-        botMessage: { avatarSrc: '/widget/paw-coral.svg' },
-        userMessage: { backgroundColor: '#ff5f42' },
-        textInput: { sendButtonColor: '#ff5f42' },
+        title: 'Your Assistant',
+        welcomeMessage: 'Hi! How can I help?',
+        botMessage: { showAvatar: true },
+        userMessage: { backgroundColor: '#2563eb' },
+        textInput: { placeholder: 'Ask anything...', sendButtonColor: '#2563eb' },
       },
     },
   });
 </script>
 ```
 
-**Branding (Nalla / Dog Food & Fun):**
-- Primary: `#ff5f42` (coral), Text: `#3a3a3a`, Background: `#FBFCFF`, Font: Poppins
-- Paw icons served from `/widget/paw-white.svg` and `/widget/paw-coral.svg`
-
-Preview locally: http://localhost:8000/widget/demo.html (served by the API in dev).
+See [`agents/nalla/README.md`](agents/nalla/README.md) for a full working example (icons, palette, copy) and a preview at http://localhost:8000/widget/demo.html when running locally.
 
 ## Running Tests
 
