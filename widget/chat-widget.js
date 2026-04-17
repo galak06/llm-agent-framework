@@ -4,7 +4,6 @@
   const WIDGET_ID = 'llm-chat-widget';
   const script = document.currentScript;
 
-  // --- Config from data attributes ---
   const CONFIG = {
     apiUrl: script?.getAttribute('data-api-url') || '',
     apiKey: script?.getAttribute('data-api-key') || '',
@@ -15,382 +14,16 @@
     placeholder: script?.getAttribute('data-placeholder') || 'Type a message...',
     footerText: script?.getAttribute('data-footer-text') || '',
     footerUrl: script?.getAttribute('data-footer-url') || '',
-    primaryColor: script?.getAttribute('data-primary-color') || '#4f46e5',
+    primaryColor: script?.getAttribute('data-primary-color') || '#2563eb',
     icon: script?.getAttribute('data-icon') || 'chat',
     quickActions: script?.getAttribute('data-quick-actions') || '',
   };
 
   const POLL_INTERVAL = 1000;
   const MAX_POLLS = 60;
-
-  // --- State ---
   let isOpen = false;
   let isLoading = false;
   let sessionId = `sess_${crypto.randomUUID()}`;
-
-  // --- Color helpers ---
-  function hexToRgb(hex) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `${r}, ${g}, ${b}`;
-  }
-
-  function darken(hex, amount) {
-    const num = parseInt(hex.slice(1), 16);
-    const r = Math.max(0, (num >> 16) - amount);
-    const g = Math.max(0, ((num >> 8) & 0x00ff) - amount);
-    const b = Math.max(0, (num & 0x0000ff) - amount);
-    return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
-  }
-
-  const rgb = hexToRgb(CONFIG.primaryColor);
-
-  // --- Styles ---
-  const styles = `
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-
-    #${WIDGET_ID} {
-      --cw-primary: ${CONFIG.primaryColor};
-      --cw-primary-hover: ${darken(CONFIG.primaryColor, 20)};
-      --cw-primary-light: ${CONFIG.primaryColor}12;
-      --cw-primary-rgb: ${rgb};
-      --cw-bg: #ffffff;
-      --cw-bg-chat: #f8fafc;
-      --cw-text: #1e293b;
-      --cw-text-light: #64748b;
-      --cw-border: #e2e8f0;
-      --cw-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-      --cw-radius: 16px;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      position: fixed;
-      bottom: 24px;
-      ${CONFIG.position === 'left' ? 'left: 24px;' : 'right: 24px;'}
-      z-index: 999999;
-      line-height: 1.5;
-      font-size: 14px;
-      box-sizing: border-box;
-    }
-
-    #${WIDGET_ID} *, #${WIDGET_ID} *::before, #${WIDGET_ID} *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    .cw-toggle {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      border: none;
-      background: var(--cw-primary);
-      color: white;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 20px rgba(var(--cw-primary-rgb), 0.4);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .cw-toggle:hover {
-      transform: scale(1.08);
-      box-shadow: 0 6px 28px rgba(var(--cw-primary-rgb), 0.5);
-    }
-
-    .cw-toggle:active { transform: scale(0.95); }
-
-    .cw-toggle svg { width: 28px; height: 28px; transition: all 0.3s ease; }
-
-    .cw-toggle .cw-icon-close {
-      position: absolute;
-      opacity: 0;
-      transform: rotate(-90deg) scale(0.5);
-    }
-
-    .cw-toggle.cw-open .cw-icon-main {
-      opacity: 0;
-      transform: rotate(90deg) scale(0.5);
-    }
-
-    .cw-toggle.cw-open .cw-icon-close {
-      opacity: 1;
-      transform: rotate(0) scale(1);
-    }
-
-    .cw-toggle .cw-pulse {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      background: var(--cw-primary);
-      animation: cw-pulse 2s ease-in-out infinite;
-      z-index: -1;
-    }
-
-    @keyframes cw-pulse {
-      0%, 100% { transform: scale(1); opacity: 0.4; }
-      50% { transform: scale(1.2); opacity: 0; }
-    }
-
-    .cw-window {
-      position: absolute;
-      bottom: 80px;
-      ${CONFIG.position === 'left' ? 'left: 0;' : 'right: 0;'}
-      width: 400px;
-      max-width: calc(100vw - 48px);
-      height: 560px;
-      max-height: calc(100vh - 140px);
-      background: var(--cw-bg);
-      border-radius: var(--cw-radius);
-      box-shadow: var(--cw-shadow);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      opacity: 0;
-      transform: translateY(20px) scale(0.95);
-      pointer-events: none;
-      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-      border: 1px solid var(--cw-border);
-    }
-
-    .cw-window.cw-visible {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-      pointer-events: all;
-    }
-
-    .cw-header {
-      background: linear-gradient(135deg, var(--cw-primary) 0%, ${darken(CONFIG.primaryColor, -30)} 100%);
-      color: white;
-      padding: 20px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-shrink: 0;
-    }
-
-    .cw-avatar {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      overflow: hidden;
-    }
-
-    .cw-avatar svg { width: 24px; height: 24px; }
-    .cw-avatar img { width: 100%; height: 100%; object-fit: cover; }
-
-    .cw-header-text h3 { font-size: 16px; font-weight: 600; margin: 0; }
-
-    .cw-header-text p { font-size: 12px; opacity: 0.85; margin: 2px 0 0; }
-
-    .cw-status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #4ade80;
-      display: inline-block;
-      margin-right: 4px;
-      animation: cw-glow 2s ease-in-out infinite;
-    }
-
-    @keyframes cw-glow {
-      0%, 100% { box-shadow: 0 0 4px rgba(74, 222, 128, 0.4); }
-      50% { box-shadow: 0 0 8px rgba(74, 222, 128, 0.8); }
-    }
-
-    .cw-messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      background: var(--cw-bg-chat);
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      scroll-behavior: smooth;
-    }
-
-    .cw-messages::-webkit-scrollbar { width: 5px; }
-    .cw-messages::-webkit-scrollbar-track { background: transparent; }
-    .cw-messages::-webkit-scrollbar-thumb { background: var(--cw-border); border-radius: 10px; }
-
-    .cw-msg {
-      max-width: 85%;
-      padding: 10px 14px;
-      border-radius: 14px;
-      font-size: 14px;
-      line-height: 1.5;
-      animation: cw-fade-in 0.3s ease;
-      word-wrap: break-word;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-      white-space: pre-wrap;
-      overflow: hidden;
-    }
-
-    @keyframes cw-fade-in {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .cw-msg-user {
-      align-self: flex-end;
-      background: var(--cw-primary);
-      color: white;
-      border-bottom-right-radius: 4px;
-    }
-
-    .cw-msg-bot {
-      align-self: flex-start;
-      background: white;
-      color: var(--cw-text);
-      border: 1px solid var(--cw-border);
-      border-bottom-left-radius: 4px;
-    }
-
-    .cw-msg-welcome {
-      align-self: center;
-      background: var(--cw-primary-light);
-      color: var(--cw-primary);
-      border-radius: 12px;
-      text-align: center;
-      font-size: 13px;
-      max-width: 100%;
-      padding: 12px 16px;
-      white-space: normal;
-    }
-
-    .cw-typing {
-      align-self: flex-start;
-      display: flex;
-      gap: 4px;
-      padding: 12px 16px;
-      background: white;
-      border: 1px solid var(--cw-border);
-      border-radius: 14px;
-      border-bottom-left-radius: 4px;
-    }
-
-    .cw-typing span {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--cw-text-light);
-      animation: cw-bounce 1.4s ease-in-out infinite;
-    }
-
-    .cw-typing span:nth-child(2) { animation-delay: 0.2s; }
-    .cw-typing span:nth-child(3) { animation-delay: 0.4s; }
-
-    @keyframes cw-bounce {
-      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-      30% { transform: translateY(-6px); opacity: 1; }
-    }
-
-    .cw-quick-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      padding: 0 16px 12px;
-      background: var(--cw-bg-chat);
-    }
-
-    .cw-quick-btn {
-      padding: 6px 12px;
-      border-radius: 20px;
-      border: 1px solid var(--cw-border);
-      background: white;
-      color: var(--cw-text);
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: inherit;
-    }
-
-    .cw-quick-btn:hover {
-      border-color: var(--cw-primary);
-      color: var(--cw-primary);
-      background: var(--cw-primary-light);
-    }
-
-    .cw-input-area {
-      padding: 12px 16px;
-      border-top: 1px solid var(--cw-border);
-      display: flex;
-      gap: 8px;
-      align-items: flex-end;
-      background: var(--cw-bg);
-      flex-shrink: 0;
-    }
-
-    .cw-input {
-      flex: 1;
-      border: 1px solid var(--cw-border);
-      border-radius: 12px;
-      padding: 10px 14px;
-      font-size: 14px;
-      font-family: inherit;
-      outline: none;
-      resize: none;
-      max-height: 80px;
-      line-height: 1.4;
-      transition: border-color 0.2s;
-      color: var(--cw-text);
-      background: var(--cw-bg-chat);
-    }
-
-    .cw-input::placeholder { color: var(--cw-text-light); }
-    .cw-input:focus { border-color: var(--cw-primary); }
-
-    .cw-send {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      border: none;
-      background: var(--cw-primary);
-      color: white;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-      flex-shrink: 0;
-    }
-
-    .cw-send:hover:not(:disabled) { background: var(--cw-primary-hover); }
-    .cw-send:disabled { opacity: 0.5; cursor: not-allowed; }
-    .cw-send svg { width: 18px; height: 18px; }
-
-    .cw-footer {
-      text-align: center;
-      padding: 8px;
-      font-size: 11px;
-      color: var(--cw-text-light);
-      background: var(--cw-bg);
-      border-top: 1px solid var(--cw-border);
-      flex-shrink: 0;
-    }
-
-    .cw-footer a { color: var(--cw-primary); text-decoration: none; }
-
-    @media (max-width: 480px) {
-      .cw-window {
-        width: calc(100vw - 16px);
-        height: calc(100vh - 100px);
-        bottom: 76px;
-        ${CONFIG.position === 'left' ? 'left: -16px;' : 'right: -16px;'}
-        border-radius: 12px;
-      }
-      .cw-toggle { width: 56px; height: 56px; }
-    }
-  `;
 
   // --- Icons ---
   const ICONS = {
@@ -399,242 +32,430 @@
     bot: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1H3a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73A2 2 0 0 1 12 2zM9.5 13a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>',
   };
   const closeIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-  const sendIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+  const sendIcon = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>';
 
-  function getMainIcon() {
-    if (CONFIG.icon.startsWith('http') || CONFIG.icon.startsWith('/')) {
-      return `<img src="${CONFIG.icon}" alt="">`;
-    }
+  function getIcon() {
+    if (CONFIG.icon.startsWith('http') || CONFIG.icon.startsWith('/'))
+      return `<img src="${CONFIG.icon}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
     return ICONS[CONFIG.icon] || ICONS.chat;
   }
 
-  function getAvatarContent() {
-    if (CONFIG.icon.startsWith('http') || CONFIG.icon.startsWith('/')) {
-      return `<img src="${CONFIG.icon}" alt="">`;
+  // --- Styles ---
+  const styles = `
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+    #${WIDGET_ID} {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      position: fixed;
+      bottom: 20px;
+      ${CONFIG.position === 'left' ? 'left: 20px;' : 'right: 20px;'}
+      z-index: 999999;
+      font-size: 14px;
+      line-height: 1.5;
     }
-    return ICONS[CONFIG.icon] || ICONS.chat;
+
+    #${WIDGET_ID} *, #${WIDGET_ID} *::before, #${WIDGET_ID} *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* ---- Launcher ---- */
+    .cw-launcher {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: none;
+      background: ${CONFIG.primaryColor};
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .cw-launcher:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    }
+    .cw-launcher svg { width: 26px; height: 26px; transition: transform 0.3s; }
+    .cw-launcher .cw-close-icon {
+      position: absolute;
+      opacity: 0;
+      transform: rotate(-90deg) scale(0);
+      transition: all 0.3s;
+    }
+    .cw-launcher.cw-open .cw-main-icon { opacity: 0; transform: rotate(90deg) scale(0); }
+    .cw-launcher.cw-open .cw-close-icon { opacity: 1; transform: rotate(0) scale(1); }
+
+    /* ---- Window ---- */
+    .cw-window {
+      position: absolute;
+      bottom: 72px;
+      ${CONFIG.position === 'left' ? 'left: 0;' : 'right: 0;'}
+      width: 380px;
+      max-width: calc(100vw - 40px);
+      height: 520px;
+      max-height: calc(100vh - 120px);
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 5px 40px rgba(0,0,0,0.16);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(16px) scale(0.96);
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    .cw-window.cw-open { opacity: 1; transform: translateY(0) scale(1); pointer-events: all; }
+
+    /* ---- Header ---- */
+    .cw-header {
+      background: ${CONFIG.primaryColor};
+      color: #fff;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .cw-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .cw-avatar svg { width: 22px; height: 22px; color: #fff; }
+    .cw-header-info h3 { font-size: 15px; font-weight: 600; }
+    .cw-header-info p { font-size: 12px; opacity: 0.85; margin-top: 1px; }
+    .cw-online-dot {
+      display: inline-block;
+      width: 7px; height: 7px;
+      background: #34d399;
+      border-radius: 50%;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+
+    /* ---- Messages ---- */
+    .cw-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      background: #f0f4f8;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .cw-messages::-webkit-scrollbar { width: 4px; }
+    .cw-messages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+    .cw-bubble {
+      max-width: 80%;
+      padding: 10px 14px;
+      font-size: 14px;
+      line-height: 1.5;
+      animation: cw-slide-in 0.2s ease;
+      word-wrap: break-word;
+      overflow-wrap: anywhere;
+    }
+    @keyframes cw-slide-in {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .cw-bubble-user {
+      align-self: flex-end;
+      background: ${CONFIG.primaryColor};
+      color: #fff;
+      border-radius: 16px 16px 4px 16px;
+    }
+    .cw-bubble-bot {
+      align-self: flex-start;
+      background: #fff;
+      color: #1e293b;
+      border-radius: 16px 16px 16px 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .cw-bubble-welcome {
+      align-self: flex-start;
+      background: #fff;
+      color: #475569;
+      border-radius: 16px 16px 16px 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      font-size: 13px;
+    }
+
+    /* ---- Typing ---- */
+    .cw-typing {
+      align-self: flex-start;
+      display: flex;
+      gap: 5px;
+      padding: 12px 18px;
+      background: #fff;
+      border-radius: 16px 16px 16px 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .cw-typing span {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #94a3b8;
+      animation: cw-dot 1.2s ease-in-out infinite;
+    }
+    .cw-typing span:nth-child(2) { animation-delay: 0.15s; }
+    .cw-typing span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes cw-dot {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-5px); }
+    }
+
+    /* ---- Quick Actions ---- */
+    .cw-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 8px 16px 12px;
+      background: #f0f4f8;
+      flex-shrink: 0;
+    }
+    .cw-action-btn {
+      padding: 6px 14px;
+      border-radius: 16px;
+      border: 1.5px solid ${CONFIG.primaryColor};
+      background: #fff;
+      color: ${CONFIG.primaryColor};
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s, color 0.15s;
+    }
+    .cw-action-btn:hover {
+      background: ${CONFIG.primaryColor};
+      color: #fff;
+    }
+
+    /* ---- Input ---- */
+    .cw-input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-top: 1px solid #e2e8f0;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    .cw-input {
+      flex: 1;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 9px 16px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      resize: none;
+      max-height: 72px;
+      line-height: 1.4;
+      color: #1e293b;
+      background: #f8fafc;
+    }
+    .cw-input::placeholder { color: #94a3b8; }
+    .cw-input:focus { border-color: ${CONFIG.primaryColor}; background: #fff; }
+
+    .cw-send-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: ${CONFIG.primaryColor};
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: opacity 0.15s;
+    }
+    .cw-send-btn:disabled { opacity: 0.4; cursor: default; }
+    .cw-send-btn svg { width: 16px; height: 16px; }
+
+    /* ---- Footer ---- */
+    .cw-footer {
+      text-align: center;
+      padding: 6px;
+      font-size: 10px;
+      color: #94a3b8;
+      background: #fff;
+      flex-shrink: 0;
+    }
+    .cw-footer a { color: ${CONFIG.primaryColor}; text-decoration: none; font-weight: 500; }
+
+    /* ---- Mobile ---- */
+    @media (max-width: 480px) {
+      .cw-window {
+        width: calc(100vw - 16px);
+        height: calc(100vh - 90px);
+        bottom: 70px;
+        border-radius: 12px;
+        ${CONFIG.position === 'left' ? 'left: -12px;' : 'right: -12px;'}
+      }
+      .cw-launcher { width: 52px; height: 52px; }
+    }
+  `;
+
+  // --- Helpers ---
+  function stripMarkdown(t) {
+    return t.replace(/#{1,6}\s+/g,'').replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1')
+      .replace(/__(.+?)__/g,'$1').replace(/_(.+?)_/g,'$1').replace(/`(.+?)`/g,'$1')
+      .replace(/^\s*[-*+]\s+/gm,'').replace(/^\s*\d+\.\s+/gm,'')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g,'$1').replace(/\n{3,}/g,'\n\n').trim();
   }
 
-  // --- Quick actions ---
-  function buildQuickActions() {
+  function buildActions() {
     if (!CONFIG.quickActions) return '';
-    const actions = CONFIG.quickActions.split('|').map((a) => a.trim()).filter(Boolean);
-    if (!actions.length) return '';
-    return `<div class="cw-quick-actions" id="cw-quick-actions">${actions
-      .map((a) => `<button class="cw-quick-btn" data-msg="${a}">${a}</button>`)
-      .join('')}</div>`;
+    const btns = CONFIG.quickActions.split('|').filter(Boolean)
+      .map(a => `<button class="cw-action-btn" data-msg="${a.trim()}">${a.trim()}</button>`).join('');
+    return `<div class="cw-actions" id="cw-actions">${btns}</div>`;
   }
 
-  // --- Footer ---
   function buildFooter() {
     if (!CONFIG.footerText) return '';
-    const link = CONFIG.footerUrl
+    const inner = CONFIG.footerUrl
       ? `<a href="${CONFIG.footerUrl}" target="_blank">${CONFIG.footerText}</a>`
       : CONFIG.footerText;
-    return `<div class="cw-footer">Powered by ${link}</div>`;
+    return `<div class="cw-footer">Powered by ${inner}</div>`;
   }
 
-  // --- Text cleanup ---
-  function stripMarkdown(text) {
-    return text
-      .replace(/#{1,6}\s+/g, '')
-      .replace(/\*\*(.+?)\*\*/g, '$1')
-      .replace(/\*(.+?)\*/g, '$1')
-      .replace(/__(.+?)__/g, '$1')
-      .replace(/_(.+?)_/g, '$1')
-      .replace(/`(.+?)`/g, '$1')
-      .replace(/^\s*[-*+]\s+/gm, '- ')
-      .replace(/^\s*\d+\.\s+/gm, '')
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
-  }
-
-  // --- Build DOM ---
+  // --- DOM ---
   function createWidget() {
-    const container = document.createElement('div');
-    container.id = WIDGET_ID;
+    const el = document.createElement('div');
+    el.id = WIDGET_ID;
+    const s = document.createElement('style');
+    s.textContent = styles;
+    el.appendChild(s);
 
-    const styleEl = document.createElement('style');
-    styleEl.textContent = styles;
-    container.appendChild(styleEl);
-
-    container.innerHTML += `
+    el.innerHTML += `
       <div class="cw-window" id="cw-window">
         <div class="cw-header">
-          <div class="cw-avatar">${getAvatarContent()}</div>
-          <div class="cw-header-text">
+          <div class="cw-avatar">${getIcon()}</div>
+          <div class="cw-header-info">
             <h3>${CONFIG.title}</h3>
-            <p><span class="cw-status-dot"></span>${CONFIG.subtitle}</p>
+            <p><span class="cw-online-dot"></span>${CONFIG.subtitle}</p>
           </div>
         </div>
         <div class="cw-messages" id="cw-messages">
-          <div class="cw-msg cw-msg-welcome">${CONFIG.welcome}</div>
+          <div class="cw-bubble cw-bubble-welcome">${CONFIG.welcome}</div>
         </div>
-        ${buildQuickActions()}
-        <div class="cw-input-area">
+        ${buildActions()}
+        <div class="cw-input-row">
           <textarea class="cw-input" id="cw-input" placeholder="${CONFIG.placeholder}" rows="1"></textarea>
-          <button class="cw-send" id="cw-send" disabled>${sendIcon}</button>
+          <button class="cw-send-btn" id="cw-send" disabled>${sendIcon}</button>
         </div>
         ${buildFooter()}
       </div>
-      <button class="cw-toggle" id="cw-toggle">
-        <span class="cw-pulse"></span>
-        <span class="cw-icon-main">${getMainIcon()}</span>
-        <span class="cw-icon-close">${closeIcon}</span>
+      <button class="cw-launcher" id="cw-launcher">
+        <span class="cw-main-icon">${getIcon()}</span>
+        <span class="cw-close-icon">${closeIcon}</span>
       </button>
     `;
-
-    document.body.appendChild(container);
-    bindEvents();
+    document.body.appendChild(el);
+    bind();
   }
 
   // --- Events ---
-  function bindEvents() {
-    const toggle = document.getElementById('cw-toggle');
+  function bind() {
+    const launcher = document.getElementById('cw-launcher');
     const input = document.getElementById('cw-input');
     const send = document.getElementById('cw-send');
-    const quickActions = document.getElementById('cw-quick-actions');
+    const actions = document.getElementById('cw-actions');
 
-    toggle.addEventListener('click', toggleWindow);
-
+    launcher.addEventListener('click', toggle);
     input.addEventListener('input', () => {
       send.disabled = !input.value.trim() || isLoading;
       input.style.height = 'auto';
-      input.style.height = Math.min(input.scrollHeight, 80) + 'px';
+      input.style.height = Math.min(input.scrollHeight, 72) + 'px';
     });
-
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        if (input.value.trim() && !isLoading) sendMessage();
-      }
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (input.value.trim() && !isLoading) send_msg(); }
     });
-
-    send.addEventListener('click', () => {
-      if (input.value.trim() && !isLoading) sendMessage();
+    send.addEventListener('click', () => { if (input.value.trim() && !isLoading) send_msg(); });
+    if (actions) actions.addEventListener('click', e => {
+      const b = e.target.closest('.cw-action-btn');
+      if (b && !isLoading) { document.getElementById('cw-input').value = b.dataset.msg; send_msg(); actions.style.display = 'none'; }
     });
-
-    if (quickActions) {
-      quickActions.addEventListener('click', (e) => {
-        const btn = e.target.closest('.cw-quick-btn');
-        if (btn && !isLoading) {
-          document.getElementById('cw-input').value = btn.getAttribute('data-msg');
-          sendMessage();
-          quickActions.style.display = 'none';
-        }
-      });
-    }
   }
 
-  function toggleWindow() {
+  function toggle() {
     isOpen = !isOpen;
-    document.getElementById('cw-window').classList.toggle('cw-visible', isOpen);
-    document.getElementById('cw-toggle').classList.toggle('cw-open', isOpen);
+    document.getElementById('cw-window').classList.toggle('cw-open', isOpen);
+    document.getElementById('cw-launcher').classList.toggle('cw-open', isOpen);
     if (isOpen) document.getElementById('cw-input').focus();
   }
 
-  function addMessage(text, type) {
-    const messages = document.getElementById('cw-messages');
-    const msg = document.createElement('div');
-    msg.className = `cw-msg cw-msg-${type}`;
-    msg.textContent = type === 'bot' ? stripMarkdown(text) : text;
-    messages.appendChild(msg);
-    messages.scrollTop = messages.scrollHeight;
+  function addBubble(text, type) {
+    const area = document.getElementById('cw-messages');
+    const d = document.createElement('div');
+    d.className = `cw-bubble cw-bubble-${type}`;
+    d.textContent = type === 'bot' ? stripMarkdown(text) : text;
+    area.appendChild(d);
+    area.scrollTop = area.scrollHeight;
   }
 
   function showTyping() {
-    const messages = document.getElementById('cw-messages');
-    const typing = document.createElement('div');
-    typing.className = 'cw-typing';
-    typing.id = 'cw-typing';
-    typing.innerHTML = '<span></span><span></span><span></span>';
-    messages.appendChild(typing);
-    messages.scrollTop = messages.scrollHeight;
+    const area = document.getElementById('cw-messages');
+    const d = document.createElement('div'); d.className = 'cw-typing'; d.id = 'cw-typing';
+    d.innerHTML = '<span></span><span></span><span></span>';
+    area.appendChild(d); area.scrollTop = area.scrollHeight;
+  }
+  function hideTyping() { document.getElementById('cw-typing')?.remove(); }
+
+  function setLoading(v) {
+    isLoading = v;
+    const inp = document.getElementById('cw-input');
+    document.getElementById('cw-send').disabled = v || !inp.value.trim();
+    inp.disabled = v;
   }
 
-  function hideTyping() {
-    const el = document.getElementById('cw-typing');
-    if (el) el.remove();
-  }
-
-  function setLoading(loading) {
-    isLoading = loading;
-    const input = document.getElementById('cw-input');
-    document.getElementById('cw-send').disabled = loading || !input.value.trim();
-    input.disabled = loading;
-  }
-
-  async function sendMessage() {
-    const input = document.getElementById('cw-input');
-    const text = input.value.trim();
-    if (!text) return;
-
-    input.value = '';
-    input.style.height = 'auto';
-    addMessage(text, 'user');
-    setLoading(true);
-    showTyping();
-
+  async function send_msg() {
+    const inp = document.getElementById('cw-input');
+    const text = inp.value.trim(); if (!text) return;
+    inp.value = ''; inp.style.height = 'auto';
+    addBubble(text, 'user'); setLoading(true); showTyping();
     try {
-      const response = await fetch(`${CONFIG.apiUrl}/api/v1/ask`, {
+      const r = await fetch(`${CONFIG.apiUrl}/api/v1/ask`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': CONFIG.apiKey,
-        },
-        body: JSON.stringify({
-          user_id: 'widget-user',
-          session_id: sessionId,
-          message: text,
-        }),
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': CONFIG.apiKey },
+        body: JSON.stringify({ user_id: 'widget-user', session_id: sessionId, message: text }),
       });
-
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
-
-      const { run_id } = await response.json();
-      await pollForResult(run_id);
-    } catch (err) {
+      if (!r.ok) throw new Error(r.status);
+      const { run_id } = await r.json();
+      await poll(run_id);
+    } catch (e) {
       hideTyping();
-      addMessage("Sorry, I'm having trouble connecting. Please try again.", 'bot');
-      console.error('[ChatWidget]', err);
-    } finally {
-      setLoading(false);
-    }
+      addBubble("Sorry, I'm having trouble connecting. Please try again.", 'bot');
+    } finally { setLoading(false); }
   }
 
-  async function pollForResult(runId) {
+  async function poll(id) {
     for (let i = 0; i < MAX_POLLS; i++) {
-      await new Promise((r) => setTimeout(r, POLL_INTERVAL));
-
-      const response = await fetch(`${CONFIG.apiUrl}/api/v1/runs/${runId}`, {
-        headers: { 'X-API-Key': CONFIG.apiKey },
-      });
-
-      if (!response.ok) continue;
-      const data = await response.json();
-
-      if (data.status === 'done') {
-        hideTyping();
-        addMessage(data.answer || 'No response received.', 'bot');
-        return;
-      }
-
-      if (data.status === 'failed') {
-        hideTyping();
-        addMessage(data.error || 'Sorry, something went wrong.', 'bot');
-        return;
-      }
+      await new Promise(r => setTimeout(r, POLL_INTERVAL));
+      try {
+        const r = await fetch(`${CONFIG.apiUrl}/api/v1/runs/${id}`, { headers: { 'X-API-Key': CONFIG.apiKey } });
+        if (!r.ok) continue;
+        const d = await r.json();
+        if (d.status === 'done') { hideTyping(); addBubble(d.answer || 'No response.', 'bot'); return; }
+        if (d.status === 'failed') { hideTyping(); addBubble(d.error || 'Something went wrong.', 'bot'); return; }
+      } catch { continue; }
     }
-
-    hideTyping();
-    addMessage('Sorry, the response is taking too long. Please try again.', 'bot');
+    hideTyping(); addBubble('Response took too long. Please try again.', 'bot');
   }
 
-  // --- Init ---
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', createWidget);
-  } else {
-    createWidget();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', createWidget);
+  else createWidget();
 })();
