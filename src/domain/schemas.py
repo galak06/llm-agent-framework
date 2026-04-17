@@ -97,3 +97,10 @@ class AgentRunResult(BaseModel):
 class GuardrailResult(BaseModel):
     passed: bool
     reason: str | None = None
+
+
+class ImageInput(BaseModel):
+    """A single image attached to an agent request, already decoded from base64."""
+
+    mime_type: Annotated[str, StringConstraints(min_length=1, max_length=64)]
+    data: bytes = Field(..., description='Raw decoded image bytes')
