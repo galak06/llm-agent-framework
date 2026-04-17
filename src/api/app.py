@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from src.api.v1.middleware.rate_limit import RateLimitMiddleware
 from src.api.v1.middleware.request_id import RequestIDMiddleware
-from src.api.v1.routes import admin, chat, health
+from src.api.v1.routes import admin, chat, health, prediction
 from src.core.config import Settings, get_settings
 from src.core.container import ServiceContainer
 from src.core.logging import configure_logging
@@ -45,15 +45,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=['Content-Type', 'X-API-Key', 'X-Admin-Key', 'X-Request-ID'],
     )
 
-    # Static widget files
+    # Static widget files (no-cache in dev for hot reload)
     widget_dir = Path(__file__).resolve().parent.parent.parent / 'widget'
     if widget_dir.is_dir():
-        app.mount('/widget', StaticFiles(directory=str(widget_dir)), name='widget')
+        app.mount('/widget', StaticFiles(directory=str(widget_dir), html=True), name='widget')
 
     # Routes
     prefix = f'/api/{settings.api_version}'
     app.include_router(health.router, prefix=prefix)
     app.include_router(chat.router, prefix=prefix)
     app.include_router(admin.router, prefix=prefix)
+    app.include_router(prediction.router, prefix=prefix)
 
     return app

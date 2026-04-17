@@ -56,13 +56,38 @@ Set `LLM_PROVIDER` in `.env`:
 
 ## Widget Embed
 
+The widget uses the [flowise-embed](https://github.com/FlowiseAI/FlowiseChatEmbed) web component and talks to this API's Flowise-compatible endpoint (`POST /api/v1/prediction/{chatflow_id}`).
+
 ```html
-<script src="https://api.yourdomain.com/widget/nalla-widget.js"
-  data-api-url="https://api.yourdomain.com"
-  data-api-key="your-widget-key"></script>
+<script type="module">
+  import Chatbot from 'https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js';
+  Chatbot.init({
+    chatflowid: 'nalla',
+    apiHost: 'https://api.yourdomain.com',
+    theme: {
+      button: {
+        backgroundColor: '#ff5f42',
+        customIconSrc: '/widget/paw-white.svg',
+      },
+      chatWindow: {
+        title: "Nalla's Dad",
+        titleAvatarSrc: '/widget/paw-coral.svg',
+        welcomeMessage: 'Hey! Ask me if any food is safe for your dog.',
+        backgroundColor: '#FBFCFF',
+        botMessage: { avatarSrc: '/widget/paw-coral.svg' },
+        userMessage: { backgroundColor: '#ff5f42' },
+        textInput: { sendButtonColor: '#ff5f42' },
+      },
+    },
+  });
+</script>
 ```
 
-Preview locally: open `widget/demo.html` in your browser.
+**Branding (Nalla / Dog Food & Fun):**
+- Primary: `#ff5f42` (coral), Text: `#3a3a3a`, Background: `#FBFCFF`, Font: Poppins
+- Paw icons served from `/widget/paw-white.svg` and `/widget/paw-coral.svg`
+
+Preview locally: http://localhost:8000/widget/demo.html (served by the API in dev).
 
 ## Running Tests
 
@@ -79,6 +104,7 @@ uv run pytest tests/unit/ tests/integration/
 |--------|----------|------|----------|
 | POST | `/api/v1/ask` | `X-API-Key` | 202 `{ run_id, status_url }` |
 | GET | `/api/v1/runs/{run_id}` | `X-API-Key` | 200 `RunStatusResponse` |
+| POST | `/api/v1/prediction/{chatflow_id}` | None | 200 `{ text }` (Flowise-compatible, sync) |
 | GET | `/api/v1/health` | None | 200 `HealthResponse` |
 | GET | `/api/v1/admin/prompts` | `X-Admin-Key` | 200 `list[Prompt]` |
 | PUT | `/api/v1/admin/prompts/{key}` | `X-Admin-Key` | 200 `Prompt` |
