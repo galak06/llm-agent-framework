@@ -14,6 +14,7 @@ import structlog
 from fastapi import HTTPException, status
 
 from src.core.config import Settings
+from src.core.redis_keys import prefixed_key
 
 logger = structlog.get_logger()
 
@@ -25,10 +26,11 @@ class ChatRateLimiter:
         self._redis = redis.from_url(settings.redis_url, decode_responses=True)  # type: ignore[no-untyped-call]
         self._max_messages = settings.chat_messages_per_hour
         self._window = settings.chat_rate_limit_window_seconds
+        self._prefix = settings.redis_key_prefix
 
     async def check(self, chat_id: str) -> None:
         """Record the current request for ``chat_id`` and raise 429 if over the cap."""
-        key = f'chat_limit:{chat_id}'
+        key = prefixed_key(self._prefix, 'chat_limit', chat_id)
         now = time.time()
 
         pipe = self._redis.pipeline()

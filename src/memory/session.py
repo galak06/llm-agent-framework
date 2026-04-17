@@ -4,6 +4,7 @@ import redis.asyncio as redis
 import structlog
 
 from src.core.config import Settings
+from src.core.redis_keys import prefixed_key
 from src.domain.schemas import Message
 
 logger = structlog.get_logger()
@@ -15,9 +16,10 @@ class RedisSessionMemory:
     def __init__(self, settings: Settings) -> None:
         self._redis = redis.from_url(settings.redis_url, decode_responses=True)  # type: ignore[no-untyped-call]
         self._ttl = settings.session_ttl_seconds
+        self._prefix = settings.redis_key_prefix
 
     def _key(self, session_id: str) -> str:
-        return f'session:{session_id}:messages'
+        return prefixed_key(self._prefix, 'session', session_id, 'messages')
 
     async def get_history(self, session_id: str, limit: int = 10) -> list[Message]:
         key = self._key(session_id)
