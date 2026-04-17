@@ -59,6 +59,13 @@ class Settings(BaseSettings):
     injection_patterns: list[str] = Field(default_factory=list)
     forbidden_output_patterns: list[str] = Field(default_factory=list)
 
+    # Image uploads
+    image_max_bytes: int = Field(default=5 * 1024 * 1024, gt=0, le=20 * 1024 * 1024)
+    image_max_per_request: int = Field(default=2, gt=0, le=10)
+    image_allowed_mime_types: list[str] = Field(
+        default_factory=lambda: ['image/jpeg', 'image/png', 'image/webp']
+    )
+
     # Persona (domain-injected)
     persona_name: str = 'Assistant'
     persona_system_prompt_key: str = 'system_base'

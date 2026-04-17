@@ -36,7 +36,15 @@
   Chatbot.init({
     chatflowid: 'nalla',
     apiHost: 'https://your-api.com',
-    chatflowConfig: { headers: { 'X-API-Key': 'your-key' } },
+    chatflowConfig: {
+      headers: { 'X-API-Key': 'your-key' },
+      uploads: {
+        isImageUploadAllowed: true,
+        imgUploadSizeAndTypes: [
+          { fileTypes: ['image/jpeg', 'image/png', 'image/webp'], maxSizeMB: 5 },
+        ],
+      },
+    },
     theme: {
       button: { backgroundColor: '#ff5f42', customIconSrc: '/widget/paw-white.svg' },
       chatWindow: {
@@ -60,7 +68,14 @@
     Chatbot.init({
       chatflowid: 'nalla',
       apiHost: window.location.origin,
-      chatflowConfig: {},
+      chatflowConfig: {
+        uploads: {
+          isImageUploadAllowed: true,
+          imgUploadSizeAndTypes: [
+            { fileTypes: ['image/jpeg', 'image/png', 'image/webp'], maxSizeMB: 5 },
+          ],
+        },
+      },
       observersConfig: {},
       theme: {
         button: {

@@ -9,7 +9,7 @@ from src.agent.llm_client import LLMClientProtocol, LLMResponse
 from src.agent.prompt_builder import PromptBuilder
 from src.core.config import Settings
 from src.core.exceptions import GuardrailViolationError, TokenBudgetExceededError
-from src.domain.schemas import AgentRunResult, Message, Role
+from src.domain.schemas import AgentRunResult, ImageInput, Message, Role
 from src.memory.interfaces import MemoryWriter
 from src.tools.registry import ToolRegistry
 
@@ -41,6 +41,7 @@ class AgentOrchestrator:
         user_id: str,
         session_id: str,
         message: str,
+        images: list[ImageInput] | None = None,
     ) -> AgentRunResult:
         """Execute the full agent loop."""
         input_check = self._guardrails.check_input(message)
@@ -65,6 +66,7 @@ class AgentOrchestrator:
                 messages=messages,
                 system=system_prompt,
                 tools=tool_schemas if tool_schemas else None,
+                images=images if iteration == 0 else None,
             )
 
             total_tokens += response.usage.input_tokens + response.usage.output_tokens

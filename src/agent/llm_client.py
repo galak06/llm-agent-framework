@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import base64
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 import structlog
 
 from src.core.config import Settings
+from src.domain.schemas import ImageInput
 
 logger = structlog.get_logger()
 
@@ -37,6 +39,7 @@ class LLMClientProtocol(Protocol):
         messages: list[dict[str, Any]],
         system: str | None = None,
         tools: list[dict[str, object]] | None = None,
+        images: list[ImageInput] | None = None,
     ) -> LLMResponse: ...
 
 
@@ -55,7 +58,11 @@ class AnthropicLLMClient:
         messages: list[dict[str, Any]],
         system: str | None = None,
         tools: list[dict[str, object]] | None = None,
+        images: list[ImageInput] | None = None,
     ) -> LLMResponse:
+        if images:
+            messages = _attach_images_anthropic(messages, images)
+
         kwargs: dict[str, Any] = {
             'model': self._model,
             'max_tokens': self._max_tokens,
@@ -66,7 +73,7 @@ class AnthropicLLMClient:
         if tools:
             kwargs['tools'] = tools
 
-        logger.info('llm.call', provider='anthropic', model=self._model)
+        logger.info('llm.call', provider='anthropic', model=self._model, images=len(images or []))
         response = await self._client.messages.create(**kwargs)
         logger.info(
             'llm.response',
@@ -101,10 +108,10 @@ class GeminiLLMClient:
         messages: list[dict[str, Any]],
         system: str | None = None,
         tools: list[dict[str, object]] | None = None,
+        images: list[ImageInput] | None = None,
     ) -> LLMResponse:
         from google.genai import types
 
-        # Convert messages to Gemini format
         contents: list[types.Content] = []
         for msg in messages:
             role = 'model' if msg.get('role') == 'assistant' else 'user'
@@ -112,13 +119,21 @@ class GeminiLLMClient:
             if isinstance(text, str):
                 contents.append(types.Content(role=role, parts=[types.Part(text=text)]))
 
+        if images and contents and contents[-1].role == 'user':
+            last = contents[-1]
+            image_parts = [
+                types.Part(inline_data=types.Blob(mime_type=img.mime_type, data=img.data))
+                for img in images
+            ]
+            last.parts = image_parts + list(last.parts or [])
+
         config = types.GenerateContentConfig(
             max_output_tokens=self._max_tokens,
         )
         if system:
             config.system_instruction = system
 
-        logger.info('llm.call', provider='gemini', model=self._model)
+        logger.info('llm.call', provider='gemini', model=self._model, images=len(images or []))
         response = self._client.models.generate_content(
             model=self._model,
             contents=contents,
@@ -141,6 +156,38 @@ class GeminiLLMClient:
             stop_reason='end_turn',
             usage=LLMUsage(input_tokens=input_tokens, output_tokens=output_tokens),
         )
+
+
+def _attach_images_anthropic(
+    messages: list[dict[str, Any]], images: list[ImageInput]
+) -> list[dict[str, Any]]:
+    """Return a copy of messages with images prepended to the last user message."""
+    if not messages or messages[-1].get('role') != 'user':
+        return messages
+
+    image_blocks: list[dict[str, Any]] = [
+        {
+            'type': 'image',
+            'source': {
+                'type': 'base64',
+                'media_type': img.mime_type,
+                'data': base64.b64encode(img.data).decode('ascii'),
+            },
+        }
+        for img in images
+    ]
+
+    last = messages[-1]
+    existing = last.get('content', '')
+    text_blocks: list[dict[str, Any]]
+    if isinstance(existing, str):
+        text_blocks = [{'type': 'text', 'text': existing}] if existing else []
+    else:
+        text_blocks = list(existing)
+
+    new_messages = list(messages[:-1])
+    new_messages.append({'role': 'user', 'content': image_blocks + text_blocks})
+    return new_messages
 
 
 def create_llm_client(settings: Settings) -> LLMClientProtocol:
