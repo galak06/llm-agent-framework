@@ -3,64 +3,109 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat Widget Demo</title>
+  <title>Dog Food & Fun</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; }
     body {
-      font-family: -apple-system, sans-serif;
+      font-family: 'Poppins', -apple-system, sans-serif;
       max-width: 700px;
       margin: 60px auto;
       padding: 20px;
-      color: #333;
-      background: #f1f5f9;
+      color: #3a3a3a;
+      background: #FBFCFF;
     }
     h1 { font-size: 1.8rem; margin-bottom: 8px; }
-    p { line-height: 1.7; color: #555; }
+    p { line-height: 1.7; color: #475569; }
     pre {
-      background: #1e293b;
-      color: #e2e8f0;
-      padding: 16px;
-      border-radius: 8px;
-      overflow-x: auto;
-      font-size: 13px;
-      line-height: 1.5;
+      background: #1e293b; color: #e2e8f0;
+      padding: 16px; border-radius: 8px;
+      overflow-x: auto; font-size: 13px; line-height: 1.5;
     }
   </style>
 </head>
 <body>
   <h1>Dog Food & Fun</h1>
-  <p>Click the blue button in the bottom-right corner to try the chat widget.</p>
-  <p>Ask things like "Can my dog eat chocolate?" or "Is rice safe?"</p>
+  <p>Click the chat button in the bottom-right corner to ask about dog food safety.</p>
 
   <h2>Embed on your site</h2>
-  <pre>&lt;script
-  src="https://your-api.com/widget/chat-widget.js"
-  data-api-url="https://your-api.com"
-  data-api-key="your-widget-key"
-  data-title="Nalla's Dad"
-  data-subtitle="Dog food safety expert"
-  data-welcome="Hey! Ask me if any food is safe for your dog."
-  data-placeholder="Ask about any food..."
-  data-icon="paw"
-  data-primary-color="#2563eb"
-  data-quick-actions="Chocolate safe?|Is rice ok?|Can dogs eat grapes?"
-  data-footer-text="Dog Food &amp; Fun"
-  data-footer-url="https://dogfoodandfun.com"&gt;
+  <pre>&lt;script type="module"&gt;
+  import Chatbot from 'https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js';
+  Chatbot.init({
+    chatflowid: 'nalla',
+    apiHost: 'https://your-api.com',
+    chatflowConfig: { headers: { 'X-API-Key': 'your-key' } },
+    theme: {
+      button: { backgroundColor: '#ff5f42', customIconSrc: '/widget/paw-white.svg' },
+      chatWindow: {
+        title: "Nalla's Dad",
+        titleAvatarSrc: '/widget/paw-coral.svg',
+        welcomeMessage: 'Hey! Ask me if any food is safe for your dog.',
+        backgroundColor: '#FBFCFF',
+        fontSize: 15,
+        starterPrompts: ['Is chocolate safe?', 'Can dogs eat rice?', 'Are grapes ok?'],
+        botMessage: { backgroundColor: '#ffffff', textColor: '#3a3a3a', avatarSrc: '/widget/paw-coral.svg' },
+        userMessage: { backgroundColor: '#ff5f42', textColor: '#ffffff' },
+        textInput: { placeholder: 'Ask about any food...', sendButtonColor: '#ff5f42' },
+        footer: { company: 'Dog Food & Fun', companyLink: 'https://dogfoodandfun.com' },
+      }
+    }
+  });
 &lt;/script&gt;</pre>
 
-  <script
-    src="/widget/chat-widget.js"
-    data-api-url=""
-    data-api-key="dev-widget-key-12345"
-    data-title="Nalla's Dad"
-    data-subtitle="Dog food safety expert"
-    data-welcome="Hey! Ask me if any food is safe for your dog."
-    data-placeholder="Ask about any food..."
-    data-icon="paw"
-    data-primary-color="#2563eb"
-    data-quick-actions="Chocolate safe?|Is rice ok?|Can dogs eat grapes?"
-    data-footer-text="Dog Food & Fun"
-    data-footer-url="https://dogfoodandfun.com">
+  <script type="module">
+    import Chatbot from 'https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js';
+    Chatbot.init({
+      chatflowid: 'nalla',
+      apiHost: window.location.origin,
+      chatflowConfig: {},
+      observersConfig: {},
+      theme: {
+        button: {
+          backgroundColor: '#ff5f42',
+          size: 'medium',
+          iconColor: 'white',
+          customIconSrc: '/widget/paw-white.svg',
+        },
+        chatWindow: {
+          title: "Nalla's Dad",
+          titleAvatarSrc: '/widget/paw-coral.svg',
+          titleBackgroundColor: '#ff5f42',
+          titleTextColor: '#ffffff',
+          showTitle: true,
+          welcomeMessage: 'Hey! Ask me if any food is safe for your dog.',
+          backgroundColor: '#FBFCFF',
+          fontSize: 15,
+          poweredByTextColor: '#9CA3AF',
+          starterPrompts: ['Is chocolate safe for dogs?', 'Can dogs eat rice?', 'Are grapes dangerous?'],
+          starterPromptFontSize: 14,
+          botMessage: {
+            backgroundColor: '#ffffff',
+            textColor: '#3a3a3a',
+            showAvatar: true,
+            avatarSrc: '/widget/paw-coral.svg',
+          },
+          userMessage: {
+            backgroundColor: '#ff5f42',
+            textColor: '#ffffff',
+            showAvatar: false,
+          },
+          textInput: {
+            placeholder: 'Ask about any food...',
+            backgroundColor: '#ffffff',
+            textColor: '#3a3a3a',
+            sendButtonColor: '#ff5f42',
+          },
+          footer: {
+            company: 'Dog Food & Fun',
+            companyLink: 'https://dogfoodandfun.com',
+            textColor: '#9CA3AF',
+          },
+        },
+      },
+    });
   </script>
 </body>
 </html>
