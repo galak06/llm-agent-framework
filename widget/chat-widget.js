@@ -137,9 +137,11 @@
     .cw-mini-ava img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
     .cw-bub {
-      padding: 10px 14px; font-size: 13px; line-height: 1.55;
+      padding: 10px 14px; font-size: 13px; line-height: 1.6;
       word-wrap: break-word; overflow-wrap: anywhere;
       animation: cw-pop 0.15s ease;
+      direction: auto; unicode-bidi: plaintext;
+      padding-bottom: 12px;
     }
     @keyframes cw-pop {
       from { opacity: 0; transform: scale(0.95); }
@@ -319,7 +321,7 @@
             ${clipIcon}
             <input type="file" id="cw-file" accept="image/*">
           </label>
-          <textarea id="cw-inp" placeholder="${CONFIG.placeholder}" rows="1"></textarea>
+          <textarea id="cw-inp" dir="auto" placeholder="${CONFIG.placeholder}" rows="1"></textarea>
           <button class="cw-snd" id="cw-snd" disabled>${sendIcon}</button>
         </div>
         ${brandHTML()}
@@ -393,6 +395,7 @@
     if (who === 'bot') row.innerHTML = avaHTML();
     const bub = document.createElement('div');
     bub.className = `cw-bub cw-bub-${who}`;
+    bub.setAttribute('dir', 'auto');
     if (imageUrl) {
       const img = document.createElement('img');
       img.src = imageUrl;
