@@ -15,6 +15,7 @@ import redis.asyncio as redis
 import structlog
 
 from src.core.config import Settings
+from src.core.redis_keys import prefixed_key
 
 logger = structlog.get_logger()
 
@@ -26,19 +27,20 @@ class AnswerCache:
         self._redis = redis.from_url(settings.redis_url, decode_responses=True)  # type: ignore[no-untyped-call]
         self._ttl = settings.answer_cache_ttl_seconds
         self._enabled = settings.answer_cache_enabled
+        self._prefix = settings.redis_key_prefix
 
     @staticmethod
-    def _key(chatflow_id: str, question: str) -> str:
+    def _key(prefix: str, chatflow_id: str, question: str) -> str:
         normalized = question.lower().strip()
         digest = hashlib.sha256(normalized.encode('utf-8')).hexdigest()[:32]
-        return f'answer_cache:{chatflow_id}:{digest}'
+        return prefixed_key(prefix, 'answer_cache', chatflow_id, digest)
 
     async def get(self, chatflow_id: str, question: str) -> str | None:
         if not self._enabled:
             return None
-        return await self._redis.get(self._key(chatflow_id, question))  # type: ignore[no-any-return]
+        return await self._redis.get(self._key(self._prefix, chatflow_id, question))  # type: ignore[no-any-return]
 
     async def set(self, chatflow_id: str, question: str, answer: str) -> None:
         if not self._enabled:
             return
-        await self._redis.setex(self._key(chatflow_id, question), self._ttl, answer)
+        await self._redis.setex(self._key(self._prefix, chatflow_id, question), self._ttl, answer)

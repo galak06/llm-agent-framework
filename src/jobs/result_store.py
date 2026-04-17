@@ -7,6 +7,7 @@ import redis.asyncio as redis
 import structlog
 
 from src.core.config import Settings
+from src.core.redis_keys import prefixed_key
 from src.domain.schemas import RunStatus, RunStatusResponse
 
 logger = structlog.get_logger()
@@ -18,9 +19,10 @@ class RunResultStore:
     def __init__(self, settings: Settings) -> None:
         self._redis = redis.from_url(settings.redis_url, decode_responses=True)  # type: ignore[no-untyped-call]
         self._ttl = settings.run_result_ttl_seconds
+        self._prefix = settings.redis_key_prefix
 
     def _key(self, run_id: str) -> str:
-        return f'runs:{run_id}'
+        return prefixed_key(self._prefix, 'runs', run_id)
 
     async def set_status(self, run_id: str, status: RunStatus) -> None:
         key = self._key(run_id)

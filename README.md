@@ -116,6 +116,30 @@ uv run pytest tests/unit/ tests/integration/
 2. Create `agents/{name}/router_config.json` with routing rules
 3. Set domain-specific env vars (persona, guardrails, agent name)
 
+## Multi-agent on One VPS
+
+Run several agents against one Redis instance without cross-talk by giving each
+agent a distinct `REDIS_KEY_PREFIX` and Celery broker DB:
+
+```env
+# agents/nalla/.env
+AGENT_NAME=nalla
+REDIS_KEY_PREFIX=nalla
+CELERY_BROKER_URL=redis://:devpass@redis:6379/1
+CELERY_RESULT_BACKEND=redis://:devpass@redis:6379/2
+
+# agents/cookbot/.env
+AGENT_NAME=cookbot
+REDIS_KEY_PREFIX=cookbot
+CELERY_BROKER_URL=redis://:devpass@redis:6379/3
+CELERY_RESULT_BACKEND=redis://:devpass@redis:6379/4
+```
+
+With `REDIS_KEY_PREFIX` set, every app-level key (sessions, rate limits, answer
+cache, run store) is namespaced — e.g. `nalla:session:...` vs `cookbot:session:...`.
+Leaving it empty keeps the legacy unprefixed key format for single-agent
+deployments.
+
 ## Environment Variables
 
 See [`.env.example`](.env.example) for all configuration options.

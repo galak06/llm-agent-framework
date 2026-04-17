@@ -10,6 +10,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from src.core.config import Settings
+from src.core.redis_keys import prefixed_key
 
 logger = structlog.get_logger()
 
@@ -22,6 +23,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self._redis = redis.from_url(settings.redis_url, decode_responses=True)  # type: ignore[no-untyped-call]
         self._max_requests = settings.rate_limit_requests
         self._window = settings.rate_limit_window_seconds
+        self._prefix = settings.redis_key_prefix
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         if request.url.path.endswith('/health'):
@@ -29,7 +31,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return response  # type: ignore[no-any-return]
 
         client_ip = request.client.host if request.client else 'unknown'
-        key = f'rate_limit:{client_ip}'
+        key = prefixed_key(self._prefix, 'rate_limit', client_ip)
         now = time.time()
 
         pipe = self._redis.pipeline()

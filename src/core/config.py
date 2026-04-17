@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     redis_url: str = 'redis://localhost:6379'
     session_ttl_seconds: int = Field(default=3600, gt=0)
     tool_cache_ttl_seconds: int = Field(default=86400, gt=0)
+    # Multi-agent isolation: when set, prepended to every app-level Redis key
+    # (sessions, rate limits, answer cache, run store). Set to the agent name
+    # (e.g., 'nalla', 'cookbot') when running multiple agents on one Redis.
+    redis_key_prefix: str = ''
 
     # Rate Limiting
     rate_limit_requests: int = Field(default=10, gt=0)
