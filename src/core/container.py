@@ -5,7 +5,7 @@ from __future__ import annotations
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.agent.guardrails import GuardrailEngine
-from src.agent.llm_client import LLMClient
+from src.agent.llm_client import create_llm_client
 from src.agent.orchestrator import AgentOrchestrator
 from src.agent.prompt_builder import PromptBuilder
 from src.core.config import Settings
@@ -28,7 +28,7 @@ class ServiceContainer:
         self.session_memory = RedisSessionMemory(settings)
 
         # Agent components
-        self.llm_client = LLMClient(settings)
+        self.llm_client = create_llm_client(settings)
         self.tool_registry = ToolRegistry()
         self.guardrails = GuardrailEngine(settings)
         self.prompt_builder = PromptBuilder(settings, self.session_memory)

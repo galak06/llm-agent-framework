@@ -26,7 +26,9 @@ class Settings(BaseSettings):
     allowed_input_max_length: int = Field(default=500, gt=0, le=10000)
 
     # LLM
-    anthropic_api_key: str = Field(min_length=1)
+    llm_provider: str = 'anthropic'  # 'anthropic' or 'gemini'
+    anthropic_api_key: str = ''
+    gemini_api_key: str = ''
     llm_model: str = 'claude-sonnet-4-20250514'
     llm_max_tokens: int = Field(default=4096, gt=0, le=100000)
     agent_max_iterations: int = Field(default=5, gt=0, le=50)

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import anthropic.types
+from typing import Any
+
 import structlog
 
 from src.agent.guardrails import GuardrailEngine
-from src.agent.llm_client import LLMClient
+from src.agent.llm_client import LLMClientProtocol, LLMResponse
 from src.agent.prompt_builder import PromptBuilder
 from src.core.config import Settings
 from src.core.exceptions import GuardrailViolationError, TokenBudgetExceededError
@@ -21,7 +22,7 @@ class AgentOrchestrator:
     def __init__(
         self,
         settings: Settings,
-        llm_client: LLMClient,
+        llm_client: LLMClientProtocol,
         prompt_builder: PromptBuilder,
         tool_registry: ToolRegistry,
         guardrails: GuardrailEngine,
@@ -89,11 +90,14 @@ class AgentOrchestrator:
             if response.stop_reason == 'tool_use':
                 for block in response.content:
                     if block.type == 'tool_use':
+                        tool_input: dict[str, Any] = getattr(block, 'input', {})
                         result = await self._tools.execute_tool(
-                            block.name,
-                            **block.input,
+                            getattr(block, 'name', ''),
+                            **tool_input,
                         )
-                        tools_used.append(self._tools.get(block.name).versioned_name)
+                        tools_used.append(
+                            self._tools.get(getattr(block, 'name', '')).versioned_name
+                        )
                         messages.append(
                             {
                                 'role': 'assistant',
@@ -106,7 +110,7 @@ class AgentOrchestrator:
                                 'content': [
                                     {
                                         'type': 'tool_result',
-                                        'tool_use_id': block.id,
+                                        'tool_use_id': getattr(block, 'id', ''),
                                         'content': result.output
                                         if not result.error
                                         else result.error,
@@ -118,7 +122,7 @@ class AgentOrchestrator:
         raise TokenBudgetExceededError(f'Agent exceeded max iterations ({self._max_iterations})')
 
     @staticmethod
-    def _extract_text(response: anthropic.types.Message) -> str:
+    def _extract_text(response: LLMResponse) -> str:
         """Extract text content from LLM response."""
         parts = []
         for block in response.content:
