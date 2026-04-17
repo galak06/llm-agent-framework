@@ -221,6 +221,10 @@
       line-height: 1.5;
       animation: nw-fade-in 0.3s ease;
       word-wrap: break-word;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      white-space: pre-wrap;
+      overflow: hidden;
     }
 
     @keyframes nw-fade-in {
@@ -506,12 +510,28 @@
     }
   }
 
+  // --- Text cleanup ---
+  function stripMarkdown(text) {
+    return text
+      .replace(/#{1,6}\s+/g, '')           // headers
+      .replace(/\*\*(.+?)\*\*/g, '$1')     // bold
+      .replace(/\*(.+?)\*/g, '$1')         // italic
+      .replace(/__(.+?)__/g, '$1')         // bold alt
+      .replace(/_(.+?)_/g, '$1')           // italic alt
+      .replace(/`(.+?)`/g, '$1')           // inline code
+      .replace(/^\s*[-*+]\s+/gm, '- ')     // normalize list markers
+      .replace(/^\s*\d+\.\s+/gm, '')       // numbered lists
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links
+      .replace(/\n{3,}/g, '\n\n')          // collapse extra newlines
+      .trim();
+  }
+
   // --- Messaging ---
   function addMessage(text, type) {
     const messages = document.getElementById('nw-messages');
     const msg = document.createElement('div');
     msg.className = `nw-msg nw-msg-${type}`;
-    msg.textContent = text;
+    msg.textContent = type === 'bot' ? stripMarkdown(text) : text;
     messages.appendChild(msg);
     messages.scrollTop = messages.scrollHeight;
     return msg;
