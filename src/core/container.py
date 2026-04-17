@@ -11,6 +11,8 @@ from src.agent.guardrails import GuardrailEngine
 from src.agent.llm_client import create_llm_client
 from src.agent.orchestrator import AgentOrchestrator
 from src.agent.prompt_builder import PromptBuilder
+from src.api.v1.answer_cache import AnswerCache
+from src.api.v1.chat_rate_limit import ChatRateLimiter
 from src.core.config import Settings
 from src.db.engine import create_engine
 from src.jobs.result_store import RunResultStore
@@ -48,6 +50,8 @@ class ServiceContainer:
         self.guardrails = GuardrailEngine(settings)
         self.prompt_builder = PromptBuilder(settings, self.session_memory)
         self.result_store = RunResultStore(settings)
+        self.chat_rate_limiter = ChatRateLimiter(settings)
+        self.answer_cache = AnswerCache(settings)
 
         # Load system prompt from seeds
         system_prompt = _load_system_prompt(

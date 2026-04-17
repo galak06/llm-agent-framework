@@ -55,6 +55,18 @@ class Settings(BaseSettings):
     rate_limit_requests: int = Field(default=10, gt=0)
     rate_limit_window_seconds: int = Field(default=60, gt=0)
 
+    # Per-chatId message cap (anti-abuse: one visitor can't monopolize the LLM budget)
+    chat_messages_per_hour: int = Field(default=20, gt=0)
+    chat_rate_limit_window_seconds: int = Field(default=3600, gt=0)
+
+    # Origin header allowlist for the public /prediction endpoint.
+    # Empty list disables the check (dev default); list of origins enforces strict match.
+    widget_allowed_origins: list[str] = Field(default_factory=list)
+
+    # Answer cache — short-circuits repeated anonymous questions (cost-burn defense)
+    answer_cache_enabled: bool = True
+    answer_cache_ttl_seconds: int = Field(default=86400, gt=0)
+
     # Guardrails (domain-injected)
     injection_patterns: list[str] = Field(default_factory=list)
     forbidden_output_patterns: list[str] = Field(default_factory=list)

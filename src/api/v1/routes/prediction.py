@@ -12,9 +12,10 @@ import uuid
 from typing import Annotated, Any
 
 import structlog
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, StringConstraints
 
+from src.api.v1.middleware.origin_guard import require_allowed_origin
 from src.core.config import Settings
 from src.core.dependencies import ContainerDep
 from src.core.security import sanitize_input
@@ -115,6 +116,7 @@ def _split_data_url(data: str, fallback_mime: str | None) -> tuple[str, str]:
 @router.post(
     '/prediction/{chatflow_id}',
     response_model=PredictionResponse,
+    dependencies=[Depends(require_allowed_origin)],
 )
 async def predict(
     chatflow_id: str,
@@ -125,8 +127,18 @@ async def predict(
     sanitized = sanitize_input(body.question, container.settings)
     images = _parse_uploads(body.uploads, container.settings)
 
+    if body.chatId:
+        await container.chat_rate_limiter.check(body.chatId)
+
     chat_id = body.chatId or f'anon-{uuid.uuid4()}'
     session_id = f'{chatflow_id}:{chat_id}'
+
+    use_cache = body.chatId is None and not images
+    if use_cache:
+        cached = await container.answer_cache.get(chatflow_id, sanitized)
+        if cached is not None:
+            logger.info('prediction.cache_hit', chatflow_id=chatflow_id)
+            return PredictionResponse(text=cached)
 
     orchestrator = container.build_orchestrator()
 
@@ -144,6 +156,8 @@ async def predict(
             tokens=result.total_tokens,
             images=len(images),
         )
+        if use_cache:
+            await container.answer_cache.set(chatflow_id, sanitized, result.answer)
         return PredictionResponse(text=result.answer)
 
     except HTTPException:
