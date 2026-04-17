@@ -8,11 +8,12 @@ from __future__ import annotations
 
 import base64
 import binascii
-from typing import Any
+import uuid
+from typing import Annotated, Any
 
 import structlog
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StringConstraints
 
 from src.core.config import Settings
 from src.core.dependencies import ContainerDep
@@ -32,9 +33,16 @@ class FlowiseUpload(BaseModel):
     mime: str | None = None
 
 
+ChatIdStr = Annotated[
+    str,
+    StringConstraints(min_length=1, max_length=128, pattern=r'^[A-Za-z0-9_\-]+$'),
+]
+
+
 class PredictionRequest(BaseModel):
     question: str = Field(min_length=1, max_length=5000)
     uploads: list[FlowiseUpload] | None = None
+    chatId: ChatIdStr | None = None  # noqa: N815 — Flowise convention
     overrideConfig: dict[str, Any] | None = None  # noqa: N815 — Flowise convention
 
 
@@ -117,18 +125,22 @@ async def predict(
     sanitized = sanitize_input(body.question, container.settings)
     images = _parse_uploads(body.uploads, container.settings)
 
+    chat_id = body.chatId or f'anon-{uuid.uuid4()}'
+    session_id = f'{chatflow_id}:{chat_id}'
+
     orchestrator = container.build_orchestrator()
 
     try:
         result = await orchestrator.run(
-            user_id='widget-user',
-            session_id=f'flowise-{chatflow_id}',
+            user_id=chat_id,
+            session_id=session_id,
             message=sanitized,
             images=images or None,
         )
         logger.info(
             'prediction.done',
             chatflow_id=chatflow_id,
+            session_id=session_id,
             tokens=result.total_tokens,
             images=len(images),
         )
