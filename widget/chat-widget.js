@@ -182,11 +182,11 @@
 
     /* Quick actions */
     .cw-qa {
-      display: flex; flex-wrap: wrap; gap: 6px;
-      padding: 6px 16px 10px; background: #eef2f7;
+      display: flex; flex-wrap: wrap; gap: 8px;
+      padding: 10px 16px 12px; background: #eef2f7;
     }
     .cw-qa button {
-      padding: 5px 12px; border-radius: 14px;
+      padding: 8px 16px; border-radius: 18px;
       border: 1.5px solid ${PC}; background: #fff;
       color: ${PC}; font-size: 12px; font-weight: 500;
       cursor: pointer; font-family: inherit; transition: all 0.15s;
@@ -220,8 +220,8 @@
 
     /* Input */
     .cw-foot {
-      display: flex; align-items: center; gap: 6px;
-      padding: 10px 12px; background: #fff; border-top: 1px solid #e5e9ef;
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 16px; background: #fff; border-top: 1px solid #e5e9ef;
     }
     .cw-clip {
       width: 34px; height: 34px; border-radius: 50%; border: none;
@@ -233,8 +233,8 @@
     .cw-clip svg { width: 18px; height: 18px; }
     .cw-clip input { display: none; }
     .cw-foot textarea {
-      flex: 1; border: 1px solid #dde2ea; border-radius: 20px;
-      padding: 8px 14px; font-size: 13px; font-family: inherit;
+      flex: 1; border: 1px solid #dde2ea; border-radius: 22px;
+      padding: 10px 18px; font-size: 14px; font-family: inherit;
       outline: none; resize: none; max-height: 68px;
       color: #334155; background: #f8fafc; line-height: 1.4;
     }
