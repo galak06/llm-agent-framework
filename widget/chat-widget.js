@@ -117,8 +117,8 @@
 
     /* Messages */
     .cw-body {
-      flex: 1; overflow-y: auto; padding: 16px;
-      background: #eef2f7; display: flex; flex-direction: column; gap: 8px;
+      flex: 1; overflow-y: auto; padding: 20px;
+      background: #eef2f7; display: flex; flex-direction: column; gap: 12px;
     }
     .cw-body::-webkit-scrollbar { width: 4px; }
     .cw-body::-webkit-scrollbar-thumb { background: #c1c9d4; border-radius: 4px; }
@@ -137,11 +137,10 @@
     .cw-mini-ava img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
     .cw-bub {
-      padding: 10px 14px; font-size: 13px; line-height: 1.6;
+      padding: 12px 18px; font-size: 14px; line-height: 1.6;
       word-wrap: break-word; overflow-wrap: anywhere;
       animation: cw-pop 0.15s ease;
       direction: auto; unicode-bidi: plaintext;
-      padding-bottom: 12px;
     }
     @keyframes cw-pop {
       from { opacity: 0; transform: scale(0.95); }
@@ -183,10 +182,10 @@
     /* Quick actions */
     .cw-qa {
       display: flex; flex-wrap: wrap; gap: 8px;
-      padding: 10px 16px 12px; background: #eef2f7;
+      padding: 10px 20px 14px; background: #eef2f7;
     }
     .cw-qa button {
-      padding: 8px 16px; border-radius: 18px;
+      padding: 8px 18px; border-radius: 18px;
       border: 1.5px solid ${PC}; background: #fff;
       color: ${PC}; font-size: 12px; font-weight: 500;
       cursor: pointer; font-family: inherit; transition: all 0.15s;
@@ -221,7 +220,7 @@
     /* Input */
     .cw-foot {
       display: flex; align-items: center; gap: 8px;
-      padding: 12px 16px; background: #fff; border-top: 1px solid #e5e9ef;
+      padding: 12px 20px; background: #fff; border-top: 1px solid #e5e9ef;
     }
     .cw-clip {
       width: 34px; height: 34px; border-radius: 50%; border: none;
