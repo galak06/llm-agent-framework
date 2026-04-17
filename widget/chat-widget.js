@@ -124,9 +124,10 @@
     .cw-body::-webkit-scrollbar-thumb { background: #c1c9d4; border-radius: 4px; }
 
     /* Bot row: avatar + bubble */
-    .cw-row { display: flex; align-items: flex-end; gap: 8px; max-width: 88%; }
+    .cw-row { display: flex; align-items: flex-end; gap: 8px; max-width: 82%; }
     .cw-row-user { align-self: flex-end; flex-direction: row-reverse; }
     .cw-row-bot { align-self: flex-start; }
+    .cw-welcome { max-width: 82%; }
     .cw-mini-ava {
       width: 28px; height: 28px; border-radius: 50%;
       background: ${PC}; color: #fff;
@@ -158,7 +159,7 @@
 
     /* Welcome */
     .cw-welcome {
-      align-self: flex-start; display: flex; align-items: flex-end; gap: 8px; max-width: 88%;
+      align-self: flex-start; display: flex; align-items: flex-end; gap: 8px;
     }
 
     /* Typing */
