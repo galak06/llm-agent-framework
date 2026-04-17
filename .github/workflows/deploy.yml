@@ -1,12 +1,22 @@
 name: Deploy
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type DEPLOY to confirm'
+        required: true
+        type: string
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Verify confirmation
+        run: |
+          if [ "${{ inputs.confirm }}" != "DEPLOY" ]; then
+            echo "::error::confirm input must be exactly 'DEPLOY' (case-sensitive) — got '${{ inputs.confirm }}'"
+            exit 1
+          fi
       - uses: actions/checkout@v4
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1
