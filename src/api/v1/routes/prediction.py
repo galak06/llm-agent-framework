@@ -152,11 +152,16 @@ async def predict(
                     chatflow_id, chat_id, upload.name, image.mime_type, image.data
                 )
 
-    use_cache = body.chatId is None and not images
+    image_hash = container.answer_cache.hash_images([img.data for img in images])
+    use_cache = body.chatId is None
     if use_cache:
-        cached = await container.answer_cache.get(chatflow_id, sanitized)
+        cached = await container.answer_cache.get(chatflow_id, sanitized, image_hash)
         if cached is not None:
-            logger.info('prediction.cache_hit', chatflow_id=chatflow_id)
+            logger.info(
+                'prediction.cache_hit',
+                chatflow_id=chatflow_id,
+                has_images=bool(images),
+            )
             return PredictionResponse(text=cached)
 
     orchestrator = container.build_orchestrator()
@@ -176,7 +181,7 @@ async def predict(
             images=len(images),
         )
         if use_cache:
-            await container.answer_cache.set(chatflow_id, sanitized, result.answer)
+            await container.answer_cache.set(chatflow_id, sanitized, result.answer, image_hash)
         return PredictionResponse(text=result.answer)
 
     except HTTPException:
