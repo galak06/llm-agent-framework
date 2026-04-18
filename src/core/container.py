@@ -13,6 +13,7 @@ from src.agent.orchestrator import AgentOrchestrator
 from src.agent.prompt_builder import PromptBuilder
 from src.api.v1.answer_cache import AnswerCache
 from src.api.v1.chat_rate_limit import ChatRateLimiter
+from src.api.v1.upload_store import UploadStore
 from src.core.config import Settings
 from src.db.engine import create_engine
 from src.jobs.result_store import RunResultStore
@@ -52,6 +53,7 @@ class ServiceContainer:
         self.result_store = RunResultStore(settings)
         self.chat_rate_limiter = ChatRateLimiter(settings)
         self.answer_cache = AnswerCache(settings)
+        self.upload_store = UploadStore(settings)
 
         # Load system prompt from seeds
         system_prompt = _load_system_prompt(

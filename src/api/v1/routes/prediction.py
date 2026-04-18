@@ -145,6 +145,13 @@ async def predict(
     chat_id = body.chatId or f'anon-{uuid.uuid4()}'
     session_id = f'{chatflow_id}:{chat_id}'
 
+    if body.uploads and images:
+        for upload, image in zip(body.uploads, images, strict=False):
+            if upload.name:
+                await container.upload_store.put(
+                    chatflow_id, chat_id, upload.name, image.mime_type, image.data
+                )
+
     use_cache = body.chatId is None and not images
     if use_cache:
         cached = await container.answer_cache.get(chatflow_id, sanitized)

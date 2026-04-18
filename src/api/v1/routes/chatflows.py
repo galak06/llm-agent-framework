@@ -15,7 +15,7 @@ import json
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Response, status
 
 from src.core.dependencies import ContainerDep
 
@@ -60,3 +60,21 @@ async def get_public_chatflow(chatflow_id: str, container: ContainerDep) -> dict
 async def get_public_chatbot_config(chatflow_id: str, container: ContainerDep) -> dict[str, Any]:
     """Newer flowise-embed variants query this path directly for chatbotConfig."""
     return _chatbot_config(container)
+
+
+@router.get('/get-upload-file')
+async def get_upload_file(
+    chatflowId: str,  # noqa: N803 — Flowise query-param convention
+    chatId: str,  # noqa: N803 — Flowise query-param convention
+    fileName: str,  # noqa: N803 — Flowise query-param convention
+    container: ContainerDep,
+) -> Response:
+    """Serve back an image the widget uploaded, so it can render the thumbnail."""
+    result = await container.upload_store.get(chatflowId, chatId, fileName)
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='Upload not found or expired',
+        )
+    mime, data = result
+    return Response(content=data, media_type=mime)
