@@ -35,3 +35,36 @@ def test_key_isolates_agents_with_same_chatflow() -> None:
     k_nalla = AnswerCache._key('nalla', 'widget', 'hi')
     k_cookbot = AnswerCache._key('cookbot', 'widget', 'hi')
     assert k_nalla != k_cookbot
+
+
+def test_key_differs_when_image_hash_changes() -> None:
+    """Same question with different images produces distinct cache keys."""
+    k_no_img = AnswerCache._key('', 'nalla', 'describe')
+    k_img_a = AnswerCache._key('', 'nalla', 'describe', 'hash_a')
+    k_img_b = AnswerCache._key('', 'nalla', 'describe', 'hash_b')
+    assert k_no_img != k_img_a
+    assert k_img_a != k_img_b
+
+
+def test_key_same_when_image_hash_matches() -> None:
+    """Same question + same image hash produces the same cache key."""
+    k1 = AnswerCache._key('', 'nalla', 'describe', 'same_hash')
+    k2 = AnswerCache._key('', 'nalla', 'describe', 'same_hash')
+    assert k1 == k2
+
+
+def test_hash_images_empty_returns_empty_string() -> None:
+    assert AnswerCache.hash_images([]) == ''
+
+
+def test_hash_images_same_bytes_same_hash() -> None:
+    assert AnswerCache.hash_images([b'hello']) == AnswerCache.hash_images([b'hello'])
+
+
+def test_hash_images_different_bytes_different_hash() -> None:
+    assert AnswerCache.hash_images([b'hello']) != AnswerCache.hash_images([b'world'])
+
+
+def test_hash_images_order_matters() -> None:
+    """Swapping image order must change the hash so collisions don't occur."""
+    assert AnswerCache.hash_images([b'a', b'b']) != AnswerCache.hash_images([b'b', b'a'])
