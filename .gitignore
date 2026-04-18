@@ -32,6 +32,9 @@ Thumbs.db
 # Logs
 *.log
 
+# Session state (personal Claude Code scratch file — not for the repo)
+current_focus.md
+
 # Docs / reference (not source)
 *.docx
 
