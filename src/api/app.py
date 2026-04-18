@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from src.api.v1.middleware.rate_limit import RateLimitMiddleware
 from src.api.v1.middleware.request_id import RequestIDMiddleware
-from src.api.v1.routes import admin, chat, health, prediction
+from src.api.v1.routes import admin, chat, chatflows, health, prediction
 from src.core.config import Settings, get_settings
 from src.core.container import ServiceContainer
 from src.core.logging import configure_logging
@@ -56,5 +56,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(chat.router, prefix=prefix)
     app.include_router(admin.router, prefix=prefix)
     app.include_router(prediction.router, prefix=prefix)
+    app.include_router(chatflows.router, prefix=prefix)
 
     return app
