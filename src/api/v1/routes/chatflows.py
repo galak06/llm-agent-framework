@@ -31,7 +31,7 @@ def _chatbot_config(container: ContainerDep) -> dict[str, Any]:
             'imgUploadSizeAndTypes': [
                 {
                     'fileTypes': list(settings.image_allowed_mime_types),
-                    'maxSizeMB': max_size_mb,
+                    'maxUploadSize': max_size_mb,
                 }
             ],
         },
