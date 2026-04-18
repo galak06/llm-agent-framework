@@ -41,7 +41,10 @@ ChatIdStr = Annotated[
 
 
 class PredictionRequest(BaseModel):
-    question: str = Field(min_length=1, max_length=5000)
+    # Allow empty question — flowise-embed sends `question: ''` when the user
+    # uploads an image without typing. We require at least text OR uploads at
+    # the handler level.
+    question: str = Field(default='', max_length=5000)
     uploads: list[FlowiseUpload] | None = None
     chatId: ChatIdStr | None = None  # noqa: N815 — Flowise convention
     overrideConfig: dict[str, Any] | None = None  # noqa: N815 — Flowise convention
@@ -126,6 +129,15 @@ async def predict(
     """Flowise-compatible sync prediction — runs the agent and returns the answer."""
     sanitized = sanitize_input(body.question, container.settings)
     images = _parse_uploads(body.uploads, container.settings)
+
+    if not sanitized and not images:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Either a question or an image upload is required',
+        )
+
+    if not sanitized and images:
+        sanitized = 'Please describe this image.'
 
     if body.chatId:
         await container.chat_rate_limiter.check(body.chatId)
