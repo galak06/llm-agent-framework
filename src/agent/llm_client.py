@@ -136,7 +136,7 @@ class GeminiLLMClient:
         logger.info('llm.call', provider='gemini', model=self._model, images=len(images or []))
         response = self._client.models.generate_content(
             model=self._model,
-            contents=contents,
+            contents=contents,  # type: ignore[arg-type]
             config=config,
         )
 

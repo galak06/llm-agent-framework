@@ -1,20 +1,19 @@
 from __future__ import annotations
 
-import hashlib
-import struct
 from datetime import UTC, datetime
 
 import structlog
 from pgvector.sqlalchemy import Vector  # type: ignore[import-untyped]
-from sqlalchemy import Column, DateTime, String, Text, select
+from sqlalchemy import Column, DateTime, String, Text, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from src.db.models import Base
 from src.domain.schemas import Message, Role
+from src.memory.embedding_client import EmbeddingClient
 
 logger = structlog.get_logger()
 
-EMBEDDING_DIM = 256
+EMBEDDING_DIM = 1024
 
 
 class MemoryEmbedding(Base):
@@ -30,27 +29,16 @@ class MemoryEmbedding(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(UTC))
 
 
-def _hash_embedding(text: str, dim: int = EMBEDDING_DIM) -> list[float]:
-    """Generate a deterministic pseudo-embedding from text via hashing.
-
-    This is a lightweight fallback for environments without an embedding API.
-    It produces consistent vectors for identical text, enabling exact and
-    near-duplicate matching. For production semantic search, replace with
-    a real embedding model (e.g., Voyage AI, OpenAI text-embedding-3-small).
-    """
-    values: list[float] = []
-    for i in range(dim):
-        h = hashlib.sha256(f'{i}:{text.lower().strip()}'.encode()).digest()
-        raw = struct.unpack('<I', h[:4])[0]
-        values.append((raw / 0xFFFFFFFF) * 2 - 1)
-    return values
-
-
 class PgVectorMemory:
     """Long-term semantic memory backed by pgvector."""
 
-    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
+    def __init__(
+        self,
+        session_factory: async_sessionmaker[AsyncSession],
+        embedding_client: EmbeddingClient,
+    ) -> None:
         self._session_factory = session_factory
+        self._embedder = embedding_client
 
     async def get_history(self, session_id: str, limit: int = 10) -> list[Message]:
         """Retrieve recent messages for a session, ordered by time."""
@@ -75,7 +63,7 @@ class PgVectorMemory:
 
     async def add(self, session_id: str, message: Message) -> None:
         """Store a message with its embedding."""
-        embedding = _hash_embedding(message.content)
+        [embedding] = await self._embedder.embed([message.content], input_type='document')
 
         record = MemoryEmbedding(
             id=message.id,
@@ -98,8 +86,6 @@ class PgVectorMemory:
 
     async def clear(self, session_id: str) -> None:
         """Delete all messages for a session."""
-        from sqlalchemy import delete
-
         async with self._session_factory() as session:
             stmt = delete(MemoryEmbedding).where(MemoryEmbedding.session_id == session_id)
             await session.execute(stmt)
@@ -109,7 +95,7 @@ class PgVectorMemory:
 
     async def search(self, query: str, top_k: int = 3) -> list[Message]:
         """Find the most semantically similar messages using cosine distance."""
-        query_embedding = _hash_embedding(query)
+        [query_embedding] = await self._embedder.embed([query], input_type='query')
 
         async with self._session_factory() as session:
             stmt = (

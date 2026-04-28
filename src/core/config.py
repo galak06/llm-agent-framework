@@ -35,6 +35,30 @@ class Settings(BaseSettings):
     agent_token_budget_daily: int = Field(default=50_000, gt=0)
     memory_top_k: int = Field(default=3, gt=0, le=20)
 
+    # Knowledge base mode — controls how external KB content reaches the LLM.
+    #   'off'     — no KB injection (LLM relies on system prompt only).
+    #   'context' — load a static markdown KB file and stuff it into the
+    #               cached system prompt (best for small corpora <50 posts).
+    #   'rag'     — embed the user query, retrieve top-K chunks from pgvector,
+    #               inject them per-turn (use for large or growing corpora).
+    kb_mode: str = 'off'
+    kb_top_k: int = Field(default=5, gt=0, le=20)
+    kb_context_file: str = ''  # e.g., 'agents/nalla/seeds/wp_kb.md'
+
+    # Embeddings (Voyage AI) — only consulted when kb_mode='rag'.
+    voyage_api_key: SecretStr = SecretStr('')
+    voyage_model: str = 'voyage-3-large'
+    voyage_embedding_dim: int = Field(default=1024, gt=0, le=4096)
+
+    @field_validator('kb_mode')
+    @classmethod
+    def validate_kb_mode(cls, v: str) -> str:
+        allowed = {'off', 'context', 'rag'}
+        if v not in allowed:
+            msg = f'kb_mode must be one of {allowed}, got {v!r}'
+            raise ValueError(msg)
+        return v
+
     # Async Jobs
     celery_broker_url: str = 'redis://localhost:6379/1'
     celery_result_backend: str = 'redis://localhost:6379/2'
