@@ -2,22 +2,23 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Copy dependency files
 COPY pyproject.toml uv.lock ./
-
-# Install dependencies
 RUN uv sync --frozen --no-dev
 
-# Copy source
 COPY src/ src/
 COPY agents/ agents/
 COPY alembic/ alembic/
 COPY alembic.ini ./
 COPY scripts/ scripts/
 COPY widget/ widget/
+
+RUN groupadd -r app \
+ && useradd -r -g app -d /app -s /sbin/nologin app \
+ && chown -R app:app /app
+
+USER app
 
 EXPOSE 8000
 

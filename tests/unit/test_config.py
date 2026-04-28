@@ -31,3 +31,39 @@ class TestSettings:
     def test_injection_patterns_parsed(self, settings: Settings) -> None:
         assert len(settings.injection_patterns) == 3
         assert 'jailbreak' in settings.injection_patterns
+
+    def test_production_requires_widget_allowed_origins(self) -> None:
+        with pytest.raises(ValueError, match='WIDGET_ALLOWED_ORIGINS'):
+            Settings(
+                _env_file=None,
+                widget_api_key='test-widget-key',
+                admin_api_key='test-admin-key',
+                anthropic_api_key='sk-ant-test',
+                database_url='postgresql+asyncpg://x',
+                app_env='production',
+                widget_allowed_origins=[],
+            )
+
+    def test_production_with_widget_allowed_origins_ok(self) -> None:
+        s = Settings(
+            _env_file=None,
+            widget_api_key='test-widget-key',
+            admin_api_key='test-admin-key',
+            anthropic_api_key='sk-ant-test',
+            database_url='postgresql+asyncpg://x',
+            app_env='production',
+            widget_allowed_origins=['https://example.com'],
+        )
+        assert s.app_env == 'production'
+
+    def test_development_with_empty_allowlist_ok(self) -> None:
+        s = Settings(
+            _env_file=None,
+            widget_api_key='test-widget-key',
+            admin_api_key='test-admin-key',
+            anthropic_api_key='sk-ant-test',
+            database_url='postgresql+asyncpg://x',
+            app_env='development',
+            widget_allowed_origins=[],
+        )
+        assert s.widget_allowed_origins == []
