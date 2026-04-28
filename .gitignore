@@ -35,6 +35,9 @@ Thumbs.db
 # Session state (personal Claude Code scratch file — not for the repo)
 current_focus.md
 
+# Internal planning docs (kept local, not committed)
+docs/production-readiness.md
+
 # Docs / reference (not source)
 *.docx
 

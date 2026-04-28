@@ -1,14 +1,41 @@
 from __future__ import annotations
 
 import base64
+from io import BytesIO
 
 import pytest
 from fastapi import HTTPException
+from PIL import Image
 
-from src.api.v1.routes.prediction import FlowiseUpload, _parse_uploads, _split_data_url
+from src.api.v1.routes.prediction import (
+    FlowiseUpload,
+    _parse_uploads,
+    _sanitize_image_bytes,
+    _split_data_url,
+)
 from src.core.config import Settings
 
-PNG_BYTES = b'\x89PNG\r\n\x1a\n' + b'\x00' * 64
+
+def _png_bytes(size: tuple[int, int] = (8, 8), color: str = 'red') -> bytes:
+    img = Image.new('RGB', size, color=color)
+    buf = BytesIO()
+    img.save(buf, format='PNG')
+    return buf.getvalue()
+
+
+def _jpeg_with_exif() -> bytes:
+    """A JPEG carrying EXIF tags (the kind we want to strip)."""
+    img = Image.new('RGB', (8, 8), color='blue')
+    exif = img.getexif()
+    exif[0x010E] = 'sensitive caption'  # ImageDescription
+    exif[0x010F] = 'Camera Manufacturer'  # Make
+    exif[0x0110] = 'Camera Model'  # Model
+    buf = BytesIO()
+    img.save(buf, format='JPEG', exif=exif)
+    return buf.getvalue()
+
+
+PNG_BYTES = _png_bytes()
 PNG_B64 = base64.b64encode(PNG_BYTES).decode('ascii')
 PNG_DATA_URL = f'data:image/png;base64,{PNG_B64}'
 
@@ -23,14 +50,18 @@ def test_parse_uploads_decodes_data_url(settings: Settings) -> None:
 
     assert len(images) == 1
     assert images[0].mime_type == 'image/png'
-    assert images[0].data == PNG_BYTES
+    # Bytes round-trip through PIL so they won't equal the input exactly,
+    # but the result must still decode as a valid PNG.
+    assert Image.open(BytesIO(images[0].data)).format == 'PNG'
 
 
 def test_parse_uploads_uses_fallback_mime_when_no_data_url(settings: Settings) -> None:
-    images = _parse_uploads([FlowiseUpload(data=PNG_B64, mime='image/jpeg')], settings)
+    jpeg = _jpeg_with_exif()
+    jpeg_b64 = base64.b64encode(jpeg).decode('ascii')
+    images = _parse_uploads([FlowiseUpload(data=jpeg_b64, mime='image/jpeg')], settings)
 
     assert images[0].mime_type == 'image/jpeg'
-    assert images[0].data == PNG_BYTES
+    assert Image.open(BytesIO(images[0].data)).format == 'JPEG'
 
 
 def test_parse_uploads_rejects_disallowed_mime(settings: Settings) -> None:
@@ -63,6 +94,36 @@ def test_parse_uploads_rejects_bad_base64(settings: Settings) -> None:
         _parse_uploads([FlowiseUpload(data='data:image/png;base64,!!!not-base64!!!')], settings)
     assert exc.value.status_code == 400
     assert 'Invalid base64' in exc.value.detail
+
+
+def test_parse_uploads_rejects_corrupt_image(settings: Settings) -> None:
+    """Bytes that decode as base64 but aren't a valid image must be rejected."""
+    junk = base64.b64encode(b'\x89PNG\r\n\x1a\n' + b'\x00' * 64).decode('ascii')
+    with pytest.raises(HTTPException) as exc:
+        _parse_uploads(
+            [FlowiseUpload(data=f'data:image/png;base64,{junk}', mime='image/png')], settings
+        )
+    assert exc.value.status_code == 400
+    assert 'Invalid or corrupt' in exc.value.detail
+
+
+def test_sanitize_strips_exif() -> None:
+    """The sanitizer must drop EXIF blocks before bytes leave the API."""
+    raw = _jpeg_with_exif()
+    # Sanity check: the raw JPEG carries EXIF before sanitization.
+    assert Image.open(BytesIO(raw)).getexif()
+
+    cleaned = _sanitize_image_bytes(raw, 'image/jpeg')
+    cleaned_exif = Image.open(BytesIO(cleaned)).getexif()
+
+    # Pillow returns an empty IFD object when no EXIF is present.
+    assert dict(cleaned_exif) == {}
+
+
+def test_sanitize_rejects_bad_bytes() -> None:
+    with pytest.raises(HTTPException) as exc:
+        _sanitize_image_bytes(b'not an image', 'image/png')
+    assert exc.value.status_code == 400
 
 
 def test_split_data_url_full_prefix() -> None:

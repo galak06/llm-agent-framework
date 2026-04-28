@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import Self
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -145,6 +146,23 @@ class Settings(BaseSettings):
             msg = 'database_url must start with postgresql or sqlite'
             raise ValueError(msg)
         return v
+
+    @model_validator(mode='after')
+    def validate_prod_origin_allowlist(self) -> Self:
+        """Refuse to boot in production if the widget origin allowlist is empty.
+
+        An empty allowlist disables the origin guard, which means the public
+        ``/prediction`` endpoint accepts requests from any origin — fine for
+        dev, unsafe in prod. Fail-fast at startup so the misconfig can't ship.
+        """
+        if self.app_env == 'production' and not self.widget_allowed_origins:
+            msg = (
+                'WIDGET_ALLOWED_ORIGINS must be a non-empty list when '
+                'APP_ENV=production (the public /prediction endpoint would '
+                'otherwise accept requests from any origin).'
+            )
+            raise ValueError(msg)
+        return self
 
 
 @lru_cache

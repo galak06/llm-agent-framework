@@ -9,10 +9,12 @@ from __future__ import annotations
 import base64
 import binascii
 import uuid
+from io import BytesIO
 from typing import Annotated, Any
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
+from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, Field, StringConstraints
 
 from src.api.v1.middleware.origin_guard import require_allowed_origin
@@ -20,6 +22,12 @@ from src.core.config import Settings
 from src.core.dependencies import ContainerDep
 from src.core.security import sanitize_input
 from src.domain.schemas import ImageInput
+
+_MIME_TO_PIL: dict[str, str] = {
+    'image/jpeg': 'JPEG',
+    'image/png': 'PNG',
+    'image/webp': 'WEBP',
+}
 
 logger = structlog.get_logger()
 router = APIRouter()
@@ -92,9 +100,46 @@ def _parse_uploads(uploads: list[FlowiseUpload] | None, settings: Settings) -> l
                 detail=f'Image exceeds size limit ({settings.image_max_bytes} bytes)',
             )
 
-        images.append(ImageInput(mime_type=mime, data=data))
+        sanitized = _sanitize_image_bytes(data, mime)
+        images.append(ImageInput(mime_type=mime, data=sanitized))
 
     return images
+
+
+def _sanitize_image_bytes(data: bytes, mime: str) -> bytes:
+    """Decode and re-encode an image to drop EXIF / GPS / XMP metadata.
+
+    The round-trip also doubles as a format check — invalid or corrupt bytes
+    raise HTTPException 400 before reaching the LLM.
+    """
+    pil_format = _MIME_TO_PIL.get(mime)
+    if pil_format is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f'Unsupported image type: {mime}',
+        )
+    try:
+        with Image.open(BytesIO(data)) as opened:
+            opened.load()
+            img: Image.Image = opened
+            save_kwargs: dict[str, Any] = {'format': pil_format}
+            if pil_format == 'JPEG':
+                if img.mode in ('RGBA', 'LA', 'P'):
+                    img = img.convert('RGB')
+                save_kwargs['quality'] = 90
+                save_kwargs['optimize'] = True
+            elif pil_format == 'PNG':
+                save_kwargs['optimize'] = True
+            elif pil_format == 'WEBP':
+                save_kwargs['quality'] = 90
+            buf = BytesIO()
+            img.save(buf, **save_kwargs)
+            return buf.getvalue()
+    except (UnidentifiedImageError, OSError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Invalid or corrupt image',
+        ) from exc
 
 
 def _split_data_url(data: str, fallback_mime: str | None) -> tuple[str, str]:
