@@ -54,7 +54,10 @@ jobs:
         run: uv run bandit -r src/ -c pyproject.toml -ll
 
       - name: pip-audit — dependency vulnerability scan
-        run: uv run pip-audit --require-hashes --no-deps -r <(uv pip compile pyproject.toml 2>/dev/null) || uv run pip-audit
+        run: |
+          uv export --no-dev --no-emit-project --format requirements-txt \
+            --output-file /tmp/requirements.txt
+          uv run pip-audit --requirement /tmp/requirements.txt --disable-pip
 
       - name: Upload security reports
         if: always()
